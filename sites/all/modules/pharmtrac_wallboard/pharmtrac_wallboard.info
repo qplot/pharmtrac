@@ -1,0 +1,7 @@
+name = Pharmtrac Wallboard
+core = 7.x
+description = PharmtracPD wallboard implementation
+package = Plusdelta
+version = 7.x-1.0-beta1
+project = pharmtrac_wallboard
+features[features_api][] = api:1

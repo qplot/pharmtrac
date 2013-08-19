@@ -1,0 +1,51 @@
+{
+  "chart": {
+    "renderTo": "views-highcharts-container",
+    "defaultSeriesType": "bar"
+  },
+  "title": {
+    "text": "Historic World Population by Region"
+  },
+  "subtitle": {
+    "text": "Source: Wikipedia.org"
+  },
+  "xAxis": {
+    "categories": ["Africa", "America", "Asia", "Europe", "Oceania"],
+    "title": {
+      "text": null
+    }
+  },
+  "yAxis": [
+    {
+      "title": {
+        "text": "",
+        "align": "high"
+      }
+    },
+    {
+      "title": {
+        "text": "",
+        "align": "high"
+      },
+      "opposite": true
+    }
+  ],
+  "plotOptions": {
+    "bar": {
+      "dataLabels": {
+        "enabled": true
+      }
+    }
+  },
+  "legend": {
+    "verticalAlign": "bottom",
+    "y": 0,
+    "borderWidth": 1,
+    "backgroundColor": "#FFFFFF",
+    "shadow": true
+  },
+  "credits": {
+    "enabled": false
+  },
+  "series": []
+}

@@ -1,0 +1,84 @@
+<?php
+/**
+ * @file
+ * Code for the Pharmtrac Bundle feature.
+ */
+
+
+/**
+ * Variables
+ */
+// function pharmtrac_bundle_variable_info() {
+//   $variables['pharmtrac_bundle_enabled'] = array(
+//     'title' => t('Bundle Feature Enabled'),
+//     'description' => t('Turn on and off bundle features'),
+//     'default' => 0,
+//     'type' => 'boolean',
+//   );
+//   return $variables;
+// }
+
+/**
+ * Menu iitems
+ */
+function pharmtrac_notification_menu() {
+  $items = array();
+  
+  $items['notification/test'] = array(
+    'title' => 'Pharmtrac Notification',
+    'description' => 'Settings for bundle feature',
+    'page callback' => 'theme',
+    'page arguments' => array('pharmtrac__notification__test'),
+    'access callback' => 'user_access',
+    'access arguments' => array('administer pharmtrac'),
+    'type' => MENU_LOCAL_TASK,
+  );
+  
+  return $items;
+}
+
+/**
+ * Implements hook_theme()
+ */
+function pharmtrac_notification_theme() {
+  $themes = array(); 
+  
+  $path = drupal_get_path('module', 'pharmtrac_notification');
+  
+  $themes['pharmtrac__notification__test'] = array(
+    'arguments' => array(),
+    'template' => 'notification--test',
+    'path' => $path . '/templates'
+  );
+  
+  return $themes;
+}
+
+/**
+ * Workflow setting form page
+ */
+// function pharmtrac_bundle_settings_form($form, &$form_state) {
+//   $form['pharmtrac_bundle_enabled'] = array(
+//     '#type' => 'radios',
+//     '#options' => array('No','Yes'),
+//     '#default_value' => variable_get_value('pharmtrac_bundle_enabled'),
+//     '#title' => t('Enable bundle feature'),
+//     '#description' => t('Turn on and off bundle features.'),
+//   );
+//   
+//   $form['submit'] = array(
+//     '#type' => 'submit',
+//     '#value' => t('Save settings'),
+//   );
+//   
+//   return $form;
+// }
+
+/**
+ * General setting form handle
+ */
+// function pharmtrac_bundle_settings_form_submit($form, &$form_state) {
+//   variable_set_value('pharmtrac_bundle_enabled',$form_state['values']['pharmtrac_bundle_enabled']);
+//   drupal_set_message(t('Settings have been saved.'));
+// }
+

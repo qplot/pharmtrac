@@ -1,0 +1,51 @@
+<?php
+
+/**
+ * @file
+ * Installs the necessary table for Statistics filter module.
+ */
+
+function statistics_filter_schema() {
+  $schema['statistics_filter_browsers'] = array(
+  // Table description.
+  'description' => 'Stores browser details for statistics filtering',
+    // Field definition
+    'fields' => array(
+     'browser' => array(
+      'type' => 'varchar',
+      'length' => '255',
+      'not null' => TRUE,
+      'default' => '',
+      'description' => 'Name of browser'
+      ),
+      'counter' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'disp-width' => '11',
+        'description' => 'Counter'
+      ),
+    'is_crawler' => array(
+       'type' => 'int',
+       'size' => 'tiny',
+       'not null' => TRUE,
+       'default' => 0,
+       'disp-width' => '1',
+       'description' => 'Flag for crawlers'
+      ),
+    ),
+    // Index declarations
+    'primary key' => array('browser'),
+  );
+  return $schema;
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function statistics_filter_uninstall() {
+  // Delete variables.
+  variable_del('statistics_filter_noadmin');
+  variable_del('statistics_filter_roles');
+  variable_del('statistics_filter_crawlers');
+}

@@ -1,0 +1,563 @@
+Index: sites/all/modules/pharmtrac/pharmtrac.resource.inc
+===================================================================
+--- sites/all/modules/pharmtrac/pharmtrac.resource.inc	(revision 66)
++++ sites/all/modules/pharmtrac/pharmtrac.resource.inc	(working copy)
+@@ -104,28 +104,39 @@
+  */ 
+ function pharmtrac_services_update($type, $id, $entity) {
+   // clean $id a bit for complex barcode
+-  dsm($id);dsm($type);
+   if (!isset($entity['type'])) $entity['type'] = $type;
++  
++  // find out key and value if $id is not available
++  if (!is_numeric($id)) {
++    $key = $id;
++    if (empty($entity[$key])) 
++      return services_error(t('Missing content id'), 406);
++    
++    $keys = array($key => $entity[$key]);
++    pharmtrac_services_mapping($keys);
++
++    switch ($type) {
++      case 'user':
++        if (!($id = getEntityValue($keys, 'uid', 'user')))
++          return services_error(t('User does not exist'), 406);
++        break;
++      
++      default:
++        if (!($id = getEntityValue(array_merge(array('type' => $type), $keys))))
++          return services_error(t('Content does not exist'), 406);
++        break;
++    }
++  }
++  
+   pharmtrac_services_mapping($entity); 
+-  // dsm($entity);
+ 
+   switch ($type) {
+     case 'user':
+-      if (!is_numeric($id)) {
+-        if (!($id = getEntityValue(array('field_user_barcode'=> $id), 'uid', 'user')))
+-          return services_error(t('Missing content id'), 406);
+-      }
+       module_load_include('inc', 'services', 'resources/user_resource');
+       return _user_resource_update($id, $entity);
+       break;
+     
+     default:
+-      if (!is_numeric($id)) {
+-        if (!($id = getEntityValue(array('type'=> $type, 'title'=> $id))))
+-          return services_error(t('Missing content id'), 406);
+-      }
+-      // print_r($entity); die;
+-      dsm($id);
+       module_load_include('inc', 'services', 'resources/node_resource');
+       return _node_resource_update($id, $entity);
+       break;
+Index: sites/all/modules/pharmtrac/pharmtrac.drupal.inc
+===================================================================
+--- sites/all/modules/pharmtrac/pharmtrac.drupal.inc	(revision 66)
++++ sites/all/modules/pharmtrac/pharmtrac.drupal.inc	(working copy)
+@@ -144,7 +144,7 @@
+ 
+   if (empty($entities[$entity_type])) return array();
+   
+-  $id = array_shift(array_keys($entities[$entity_type]));
++  list($id) = array_keys($entities[$entity_type]);
+   $entities = entity_load($entity_type, array($id));
+   
+   return $entities[$id]->$field_name;
+Index: sites/all/modules/pharmtrac/pharmtrac.admin.inc
+===================================================================
+--- sites/all/modules/pharmtrac/pharmtrac.admin.inc	(revision 66)
++++ sites/all/modules/pharmtrac/pharmtrac.admin.inc	(working copy)
+@@ -79,20 +79,6 @@
+     '#size' => 10,
+     '#maxlength' =>10,
+   );
+-  $form['plusdelta_enable_interface'] = array(
+-    '#type' => 'radios',
+-    '#options' => $options,
+-    '#default_value' => variable_get('plusdelta_enable_interface', 0),
+-    '#title' => t('Enable Interface Functionality ?'),
+-    '#description' => t('When enabled, the system will populate order records with additional information pulled from an interface data feed.'),
+-  );
+-  $form['plusdelta_enable_print_action'] = array(
+-    '#type' => 'radios',
+-    '#options' => $options,
+-    '#default_value' => variable_get('plusdelta_enable_print_action', 0),
+-    '#title' => t('Enable Print Action ?'),
+-    '#description' => t('When enabled, the handheld client will support the collection of print timing metrics.'),
+-  );
+   $form['plusdelta_barcode_validation'] = array(
+     '#type' => 'textfield',
+     '#default_value' => variable_get('plusdelta_barcode_validation', '^(.*)$ 78'),
+@@ -298,8 +284,6 @@
+   variable_set('plusdelta_application_key',$form_state['values']['plusdelta_application_key']);
+   variable_set('plusdelta_require_authentication',$form_state['values']['plusdelta_require_authentication']);
+   variable_set('plusdelta_license_total',$form_state['values']['plusdelta_license_total']);
+-  variable_set('plusdelta_enable_interface',$form_state['values']['plusdelta_enable_interface']);
+-  variable_set('plusdelta_enable_print_action',$form_state['values']['plusdelta_enable_print_action']);
+   variable_set('plusdelta_barcode_validation',$form_state['values']['plusdelta_barcode_validation']);
+   variable_set('plusdelta_api_return_err',$form_state['values']['plusdelta_api_return_err']);
+   drupal_set_message(t('Settings have been saved.'));
+Index: sites/all/modules/pharmtrac/pharmtrac.views_default.inc
+===================================================================
+--- sites/all/modules/pharmtrac/pharmtrac.views_default.inc	(revision 66)
++++ sites/all/modules/pharmtrac/pharmtrac.views_default.inc	(working copy)
+@@ -255,6 +255,11 @@
+   $handler->display->display_options['fields']['title']['table'] = 'node';
+   $handler->display->display_options['fields']['title']['field'] = 'title';
+   $handler->display->display_options['fields']['title']['label'] = 'Device number';
++  /* Field: Content: Description */
++  $handler->display->display_options['fields']['body']['id'] = 'body';
++  $handler->display->display_options['fields']['body']['table'] = 'field_data_body';
++  $handler->display->display_options['fields']['body']['field'] = 'body';
++  $handler->display->display_options['fields']['body']['label'] = 'Notes';
+   /* Field: Content: Status */
+   $handler->display->display_options['fields']['field_device_status']['id'] = 'field_device_status';
+   $handler->display->display_options['fields']['field_device_status']['table'] = 'field_data_field_device_status';
+@@ -2165,6 +2170,22 @@
+     4 => 0,
+     5 => 0,
+   );
++  /* Filter criterion: Content: Short Name (field_med_shortname) */
++  $handler->display->display_options['filters']['field_med_shortname_value']['id'] = 'field_med_shortname_value';
++  $handler->display->display_options['filters']['field_med_shortname_value']['table'] = 'field_data_field_med_shortname';
++  $handler->display->display_options['filters']['field_med_shortname_value']['field'] = 'field_med_shortname_value';
++  $handler->display->display_options['filters']['field_med_shortname_value']['operator'] = 'word';
++  $handler->display->display_options['filters']['field_med_shortname_value']['exposed'] = TRUE;
++  $handler->display->display_options['filters']['field_med_shortname_value']['expose']['operator_id'] = 'field_med_shortname_value_op';
++  $handler->display->display_options['filters']['field_med_shortname_value']['expose']['label'] = 'Name contains';
++  $handler->display->display_options['filters']['field_med_shortname_value']['expose']['operator'] = 'field_med_shortname_value_op';
++  $handler->display->display_options['filters']['field_med_shortname_value']['expose']['identifier'] = 'field_med_shortname_value';
++  $handler->display->display_options['filters']['field_med_shortname_value']['expose']['remember_roles'] = array(
++    2 => '2',
++    1 => 0,
++    4 => 0,
++    5 => 0,
++  );
+ 
+   /* Display: Page */
+   $handler = $view->new_display('page', 'Page', 'page');
+Index: sites/all/modules/pharmtrac/pharmtrac.api.inc
+===================================================================
+--- sites/all/modules/pharmtrac/pharmtrac.api.inc	(revision 66)
++++ sites/all/modules/pharmtrac/pharmtrac.api.inc	(working copy)
+@@ -2473,24 +2473,31 @@
+ 
+ /**
+  * Pharmtrac rest server integration
+- * * map /rest/pharmtrac/{type} to /api?command={type}
++ * * map /rest/pharmtrac/{type}/{id} to /api?command={type}
++ * * if {id} is set to string 'key', key needs to be specified in data
+  */
+ function pharmtrac_rest_api() {
+   $_oldq = $_GET['q'];
+   
+   $_GET['q'] = 'rest/pharmtrac/' . $_GET['command'];
+ 
++  $suc_msg = '';
+   switch ($_SERVER['REQUEST_METHOD']) {
+     case 'POST':  // create
++      $suc_msg = 'create';
+       break;
+ 
+     case 'PUT':   // update
+-      $_GET['q'] = $_GET['q'] . '/' . $_GET['barcode'];
++      if (empty($_GET['id'])) 
++        return plusdelta_returnMsg('failure', 'missing id or key');
++      $_GET['q'] = $_GET['q'] . '/' . $_GET['id'];
++      $suc_msg = 'update';
+       break;
+ 
+     default:
+       break;
+   }
++  $suc_msg = $suc_msg . ' ' . $_GET['command'] . ' succesfully.';
+ 
+   $endpoint_name = 'rest';
+   module_load_include('runtime.inc', 'services');
+@@ -2506,16 +2513,20 @@
+     'settings'      => $endpoint->server_settings,
+   ));
+   
+-  call_user_func($server . '_server');
++  try {
++    call_user_func($server . '_server');
++  } catch (Exception $e) {
++    return plusdelta_returnMsg('failure', $e->getMessage());
++  }
++  
+   $_GET['q'] = $_oldq;
++  return plusdelta_returnMsg('success', $suc_msg);
+   
+-  return plusdelta_returnMsg('success', 'rest api works');
+-  
+ }
+ 
+ /**
+  * Rest API : Dispense
+- * * api?command=dispense&barcode=
++ * * api?command=dispense&id=barcode
+  * * {"barcode":"123", "shortname": "haha"}
+  *
+  * @param closed
+@@ -2528,11 +2539,9 @@
+ 
+ /**
+  * Rest API : Location
+- * * api?command=location
++ * * api?command=location&id=barcode
+  * * {"barcode":"123", "shortname": "haha"}
+  *
+- * @param type
+- *   [OPTIONAL] Specify type to be 'location'
+  * @param barcode
+  *   Specify barcode of location
+  * @param shortname
+@@ -2549,7 +2558,7 @@
+ 
+ /**
+  * Rest API : User
+- * * api?command=user
++ * * api?command=user&id=name
+  * * [POST] {"name": "fjin", "pass":"abc", "pass2":"abc", "mail":"abc@gmail.com", "barcode": "35ddtred" }
+  * * [PUT]  {"name": "fjinb", "barcode": "35ddtreddxx", "mobilerole":"Pharmacist", "portalrole":"Pharmacy", "location":"2000" }
+  *
+Index: sites/all/modules/pharmtrac/pharmtrac.strongarm.inc
+===================================================================
+--- sites/all/modules/pharmtrac/pharmtrac.strongarm.inc	(revision 66)
++++ sites/all/modules/pharmtrac/pharmtrac.strongarm.inc	(working copy)
+@@ -806,5 +806,248 @@
+   $strongarm->value = 0;
+   $export['node_submitted_wallboard'] = $strongarm;
+ 
++  $strongarm = new stdClass();
++  $strongarm->disabled = FALSE; /* Edit this to true to make a default strongarm disabled initially */
++  $strongarm->api_version = 1;
++  $strongarm->name = 'plusdelta_api_return_err';
++  $strongarm->value = '0';
++  $export['plusdelta_api_return_err'] = $strongarm;
++
++  $strongarm = new stdClass();
++  $strongarm->disabled = FALSE; /* Edit this to true to make a default strongarm disabled initially */
++  $strongarm->api_version = 1;
++  $strongarm->name = 'plusdelta_application_key';
++  $strongarm->value = 'plusdelta123';
++  $export['plusdelta_application_key'] = $strongarm;
++
++  $strongarm = new stdClass();
++  $strongarm->disabled = FALSE; /* Edit this to true to make a default strongarm disabled initially */
++  $strongarm->api_version = 1;
++  $strongarm->name = 'plusdelta_autoclosed_time';
++  $strongarm->value = '120';
++  $export['plusdelta_autoclosed_time'] = $strongarm;
++
++  $strongarm = new stdClass();
++  $strongarm->disabled = FALSE; /* Edit this to true to make a default strongarm disabled initially */
++  $strongarm->api_version = 1;
++  $strongarm->name = 'plusdelta_barcode_validation';
++  $strongarm->value = '^(.*)$ 78';
++  $export['plusdelta_barcode_validation'] = $strongarm;
++
++  $strongarm = new stdClass();
++  $strongarm->disabled = FALSE; /* Edit this to true to make a default strongarm disabled initially */
++  $strongarm->api_version = 1;
++  $strongarm->name = 'plusdelta_color_settings';
++  $strongarm->value = array(
++    'received' => array(
++      'button' => 'red',
++      'footer1' => 'red',
++      'thres1' => '',
++      'footer2' => 'red',
++      'thres2' => '',
++      'footer3' => 'red',
++    ),
++    'print' => array(
++      'button' => 'orange',
++      'footer1' => 'red',
++      'thres1' => '2',
++      'footer2' => 'red',
++      'thres2' => '6',
++      'footer3' => 'green',
++    ),
++    'prepare' => array(
++      'button' => 'red',
++      'footer1' => 'green',
++      'thres1' => '4',
++      'footer2' => 'blue',
++      'thres2' => '8',
++      'footer3' => 'orange',
++    ),
++    'verify' => array(
++      'button' => 'red',
++      'footer1' => 'green',
++      'thres1' => '1',
++      'footer2' => 'red',
++      'thres2' => '5',
++      'footer3' => 'red',
++    ),
++    'double verify' => array(
++      'button' => 'red',
++      'footer1' => 'red',
++      'thres1' => '',
++      'footer2' => 'red',
++      'thres2' => '',
++      'footer3' => 'red',
++    ),
++    'pickup' => array(
++      'button' => 'orange',
++      'footer1' => 'grey',
++      'thres1' => '2',
++      'footer2' => 'orange',
++      'thres2' => '6',
++      'footer3' => 'grey',
++    ),
++    'dropoff' => array(
++      'button' => 'green',
++      'footer1' => 'blue',
++      'thres1' => '3',
++      'footer2' => 'red',
++      'thres2' => '7',
++      'footer3' => 'orange',
++    ),
++    'reject' => array(
++      'button' => 'blue',
++      'footer1' => 'red',
++      'thres1' => '4',
++      'footer2' => 'orange',
++      'thres2' => '8',
++      'footer3' => 'blue',
++    ),
++    'close' => array(
++      'button' => 'orange',
++      'footer1' => 'orange',
++      'thres1' => '5',
++      'footer2' => 'orange',
++      'thres2' => '9',
++      'footer3' => 'red',
++    ),
++    'done' => array(
++      'button' => 'red',
++      'footer1' => 'red',
++      'thres1' => '',
++      'footer2' => 'red',
++      'thres2' => '',
++      'footer3' => 'red',
++    ),
++  );
++  $export['plusdelta_color_settings'] = $strongarm;
++
++  $strongarm = new stdClass();
++  $strongarm->disabled = FALSE; /* Edit this to true to make a default strongarm disabled initially */
++  $strongarm->api_version = 1;
++  $strongarm->name = 'plusdelta_default_order_id';
++  $strongarm->value = '1499';
++  $export['plusdelta_default_order_id'] = $strongarm;
++
++  $strongarm = new stdClass();
++  $strongarm->disabled = FALSE; /* Edit this to true to make a default strongarm disabled initially */
++  $strongarm->api_version = 1;
++  $strongarm->name = 'plusdelta_dispense_sortorder';
++  $strongarm->value = '0';
++  $export['plusdelta_dispense_sortorder'] = $strongarm;
++
++  $strongarm = new stdClass();
++  $strongarm->disabled = FALSE; /* Edit this to true to make a default strongarm disabled initially */
++  $strongarm->api_version = 1;
++  $strongarm->name = 'plusdelta_license_total';
++  $strongarm->value = '18';
++  $export['plusdelta_license_total'] = $strongarm;
++
++  $strongarm = new stdClass();
++  $strongarm->disabled = FALSE; /* Edit this to true to make a default strongarm disabled initially */
++  $strongarm->api_version = 1;
++  $strongarm->name = 'plusdelta_ontime_offset_time';
++  $strongarm->value = '2';
++  $export['plusdelta_ontime_offset_time'] = $strongarm;
++
++  $strongarm = new stdClass();
++  $strongarm->disabled = FALSE; /* Edit this to true to make a default strongarm disabled initially */
++  $strongarm->api_version = 1;
++  $strongarm->name = 'plusdelta_request_sequence';
++  $strongarm->value = array(
++    0 => '331',
++    1 => '332',
++    2 => '333',
++    3 => '334',
++    4 => '335',
++    5 => '1514',
++    6 => '781',
++    7 => '1439',
++  );
++  $export['plusdelta_request_sequence'] = $strongarm;
++
++  $strongarm = new stdClass();
++  $strongarm->disabled = FALSE; /* Edit this to true to make a default strongarm disabled initially */
++  $strongarm->api_version = 1;
++  $strongarm->name = 'plusdelta_require_authentication';
++  $strongarm->value = '0';
++  $export['plusdelta_require_authentication'] = $strongarm;
++
++  $strongarm = new stdClass();
++  $strongarm->disabled = FALSE; /* Edit this to true to make a default strongarm disabled initially */
++  $strongarm->api_version = 1;
++  $strongarm->name = 'plusdelta_special_refrigerator';
++  $strongarm->value = '0';
++  $export['plusdelta_special_refrigerator'] = $strongarm;
++
++  $strongarm = new stdClass();
++  $strongarm->disabled = FALSE; /* Edit this to true to make a default strongarm disabled initially */
++  $strongarm->api_version = 1;
++  $strongarm->name = 'plusdelta_special_rules';
++  $strongarm->value = array(
++    'Dropoff Location' => 'Dropoff Location',
++    'Tube' => 0,
++    'Refrigerator' => 0,
++  );
++  $export['plusdelta_special_rules'] = $strongarm;
++
++  $strongarm = new stdClass();
++  $strongarm->disabled = FALSE; /* Edit this to true to make a default strongarm disabled initially */
++  $strongarm->api_version = 1;
++  $strongarm->name = 'plusdelta_special_tube';
++  $strongarm->value = '0';
++  $export['plusdelta_special_tube'] = $strongarm;
++
++  $strongarm = new stdClass();
++  $strongarm->disabled = FALSE; /* Edit this to true to make a default strongarm disabled initially */
++  $strongarm->api_version = 1;
++  $strongarm->name = 'plusdelta_use_deviceid';
++  $strongarm->value = '1';
++  $export['plusdelta_use_deviceid'] = $strongarm;
++
++  $strongarm = new stdClass();
++  $strongarm->disabled = FALSE; /* Edit this to true to make a default strongarm disabled initially */
++  $strongarm->api_version = 1;
++  $strongarm->name = 'plusdelta_wallboard_column_order';
++  $strongarm->value = array(
++    0 => 'patientName',
++    1 => 'dispense',
++    2 => 'room',
++    3 => 'requestUser',
++    4 => 'stateTime',
++    5 => 'totalTime',
++    6 => 'dueTime',
++    7 => 'nextRequest',
++  );
++  $export['plusdelta_wallboard_column_order'] = $strongarm;
++
++  $strongarm = new stdClass();
++  $strongarm->disabled = FALSE; /* Edit this to true to make a default strongarm disabled initially */
++  $strongarm->api_version = 1;
++  $strongarm->name = 'plusdelta_wallboard_duetime_offset';
++  $strongarm->value = '30';
++  $export['plusdelta_wallboard_duetime_offset'] = $strongarm;
++
++  $strongarm = new stdClass();
++  $strongarm->disabled = FALSE; /* Edit this to true to make a default strongarm disabled initially */
++  $strongarm->api_version = 1;
++  $strongarm->name = 'plusdelta_wallboard_include_closed';
++  $strongarm->value = '';
++  $export['plusdelta_wallboard_include_closed'] = $strongarm;
++
++  $strongarm = new stdClass();
++  $strongarm->disabled = FALSE; /* Edit this to true to make a default strongarm disabled initially */
++  $strongarm->api_version = 1;
++  $strongarm->name = 'plusdelta_wallboard_offset_time';
++  $strongarm->value = '3';
++  $export['plusdelta_wallboard_offset_time'] = $strongarm;
++
++  $strongarm = new stdClass();
++  $strongarm->disabled = FALSE; /* Edit this to true to make a default strongarm disabled initially */
++  $strongarm->api_version = 1;
++  $strongarm->name = 'plusdelta_wallboard_refreshrate';
++  $strongarm->value = '5';
++  $export['plusdelta_wallboard_refreshrate'] = $strongarm;
++
+   return $export;
+ }
+Index: sites/all/modules/pharmtrac/pharmtrac.module
+===================================================================
+--- sites/all/modules/pharmtrac/pharmtrac.module	(revision 66)
++++ sites/all/modules/pharmtrac/pharmtrac.module	(working copy)
+@@ -118,5 +118,5 @@
+ }
+ 
+ function pharmtrac_form_submit($form, &$form_state) {
+-//  dsm($form_state);
++  // dsm($form_state);
+ }
+Index: sites/all/modules/pharmtrac/pharmtrac.features.menu_links.inc
+===================================================================
+--- sites/all/modules/pharmtrac/pharmtrac.features.menu_links.inc	(revision 66)
++++ sites/all/modules/pharmtrac/pharmtrac.features.menu_links.inc	(working copy)
+@@ -360,7 +360,7 @@
+     'external' => '0',
+     'has_children' => '0',
+     'expanded' => '0',
+-    'weight' => '0',
++    'weight' => '-39',
+     'parent_path' => 'messages',
+   );
+   // Exported menu link: user-menu:rooms
+@@ -543,11 +543,11 @@
+     'link_title' => 'Wallboards',
+     'options' => array(),
+     'module' => 'system',
+-    'hidden' => '0',
++    'hidden' => '-1',
+     'external' => '0',
+     'has_children' => '0',
+     'expanded' => '0',
+-    'weight' => '-47',
++    'weight' => '5',
+     'parent_path' => 'settings',
+   );
+   // Translatables
+Index: sites/all/modules/pharmtrac/pharmtrac.info
+===================================================================
+--- sites/all/modules/pharmtrac/pharmtrac.info	(revision 66)
++++ sites/all/modules/pharmtrac/pharmtrac.info	(working copy)
+@@ -351,6 +351,26 @@
+ features[variable][] = node_submitted_room
+ features[variable][] = node_submitted_shift
+ features[variable][] = node_submitted_wallboard
++features[variable][] = plusdelta_api_return_err
++features[variable][] = plusdelta_application_key
++features[variable][] = plusdelta_autoclosed_time
++features[variable][] = plusdelta_barcode_validation
++features[variable][] = plusdelta_color_settings
++features[variable][] = plusdelta_default_order_id
++features[variable][] = plusdelta_dispense_sortorder
++features[variable][] = plusdelta_license_total
++features[variable][] = plusdelta_ontime_offset_time
++features[variable][] = plusdelta_request_sequence
++features[variable][] = plusdelta_require_authentication
++features[variable][] = plusdelta_special_refrigerator
++features[variable][] = plusdelta_special_rules
++features[variable][] = plusdelta_special_tube
++features[variable][] = plusdelta_use_deviceid
++features[variable][] = plusdelta_wallboard_column_order
++features[variable][] = plusdelta_wallboard_duetime_offset
++features[variable][] = plusdelta_wallboard_include_closed
++features[variable][] = plusdelta_wallboard_offset_time
++features[variable][] = plusdelta_wallboard_refreshrate
+ features[views_view][] = Devices
+ features[views_view][] = access_log
+ features[views_view][] = api_logs
+Index: sites/all/modules/pharmtrac/pharmtrac.services.inc
+===================================================================
+--- sites/all/modules/pharmtrac/pharmtrac.services.inc	(revision 66)
++++ sites/all/modules/pharmtrac/pharmtrac.services.inc	(working copy)
+@@ -43,6 +43,9 @@
+         'create' => array(
+           'enabled' => '1',
+         ),
++        'update' => array(
++          'enabled' => '1',
++        ),
+       ),
+     ),
+     'node' => array(

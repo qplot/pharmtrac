@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the pharmtrac_content feature.
+ */
+
+include_once 'pharmtrac_content.features.inc';

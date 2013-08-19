@@ -1,0 +1,249 @@
+Index: feeds.plugins.inc
+===================================================================
+RCS file: feeds.plugins.inc,v
+retrieving revision 1.7.2.1
+diff -u -p -r1.7.2.1 feeds.plugins.inc
+--- feeds.plugins.inc	4 Oct 2010 20:49:28 -0000	1.7.2.1
++++ feeds.plugins.inc	22 Dec 2010 04:55:09 -0000
+@@ -86,6 +86,16 @@ function _feeds_feeds_plugins() {
+       'path' => $path,
+     ),
+   );
++  $info['FeedsMultiValueCSVParser'] = array(
++    'name' => 'Multivalue CSV parser',
++    'description' => 'Parse data in Comma Separated Value format, with the option for multiple values per cell.',
++    'handler' => array(
++      'parent' => 'FeedsCSVParser',
++      'class' => 'FeedsMultiValueCSVParser',
++      'file' => 'FeedsMultiValueCSVParser.inc',
++      'path' => $path,
++    ),
++  );
+   $info['FeedsSyndicationParser'] = array(
+     'name' => 'Common syndication parser',
+     'description' => 'Parse RSS and Atom feeds.',
+Index: includes/FeedsSource.inc
+===================================================================
+RCS file: includes/FeedsSource.inc,v
+retrieving revision 1.26.2.8
+diff -u -p -r1.26.2.8 FeedsSource.inc
+--- includes/FeedsSource.inc	26 Oct 2010 03:05:58 -0000	1.26.2.8
++++ includes/FeedsSource.inc	22 Dec 2010 04:55:09 -0000
+@@ -504,7 +504,9 @@ class FeedsSource extends FeedsConfigura
+       ctools_include('export');
+       $this->export_type = EXPORT_IN_DATABASE;
+       $this->imported = $record->imported;
+-      $this->config = unserialize($record->config);
++      // merge arrays instead of overwriting config in case fetcher/parser has changed
++      // since last import
++      $this->config = array_merge($this->config, unserialize($record->config));
+       if (!empty($record->state)) {
+         $this->state = unserialize($record->state);
+       }
+Index: plugins/FeedsCSVParser.inc
+===================================================================
+RCS file: plugins/FeedsCSVParser.inc,v
+retrieving revision 1.19.2.6
+diff -u -p -r1.19.2.6 FeedsCSVParser.inc
+--- plugins/FeedsCSVParser.inc	29 Oct 2010 18:56:48 -0000	1.19.2.6
++++ plugins/FeedsCSVParser.inc	22 Dec 2010 04:55:09 -0000
+@@ -195,7 +195,9 @@ class FeedsCSVParser extends FeedsParser
+         $sources[] = check_plain($mapping['source']);
+       }
+     }
+-    $sep = ',';
++    // should this instead use source->config['delimiter']?
++    $sep = $this->config['delimiter'];
++    $sep = ($sep == 'TAB') ? "\t" : $sep;
+     $columns = array();
+     foreach (array_merge($uniques, $sources) as $col) {
+       if (strpos($col, $sep) !== FALSE) {
+Index: plugins/FeedsMultiValueCSVParser.inc
+===================================================================
+RCS file: plugins/FeedsMultiValueCSVParser.inc
+diff -N plugins/FeedsMultiValueCSVParser.inc
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ plugins/FeedsMultiValueCSVParser.inc	22 Dec 2010 04:55:09 -0000
+@@ -0,0 +1,182 @@
++<?php
++// $Id$
++
++/**
++ * Extends FeedsCSVParser to allow cells to contain multiple values, separated by
++ * a customizable character string.
++ */
++
++class FeedsMultiValueCSVParser extends FeedsCSVParser {
++  // $source_config is an internal variable to share info between parse and parseItems.
++  protected $source_config = NULL;
++
++  /**
++   * Implements FeedsParser::parse().
++   */
++  public function parse(FeedsSource $source, FeedsFetcherResult $fetcher_result) {
++    // Save source configuration so it's available within parseItems.
++    $this->source_config = $source->getConfigFor($this);
++    // Otherwise, use same processing as FeedsCSVParser.
++    return parent::parse($source, $fetcher_result);
++  }
++
++  /**
++   * Parse all of the items from the CSV.
++   *
++   * @param ParserCSV $parser
++   * @param ParserCSVIterator $iterator
++   * @return
++   *   An array of rows of the CSV keyed by the column names previously set
++   *
++   * This is where the real differences from FeedsCSVParser are implemented --
++   * i.e., where multiple values in a cell are split into an array.
++   */
++  protected function parseItems(ParserCSV $parser, ParserCSVIterator $iterator, $start = 0, $limit = 0) {
++    // Use FeedsCSVParser for basic processing
++    $rows = parent::parseItems($parser, $iterator, $start, $limit);
++
++    // Get the configuration information that was saved in parse.
++    $config = $this->source_config ? $this->source_config : $this->config;
++    $separator = trim($config['multivalue_separator'], ' ');
++    $separator_length = strlen($separator);
++    // If separator is empty, don't bother to do any special processing.
++    if (!$separator_length) {
++      return $rows;
++    }
++    // Create the regexp pattern corresponding to this separator
++    $separator_pattern = '/\s*' . preg_quote($separator, '/') . '\s*/';
++    $trim_spaces = $config['multivalue_trim_spaces'];
++
++    foreach ($rows as &$row) {
++      foreach ($row as &$cell) {
++        // Only process cells that start with the separator
++        if ($cell && is_string($cell) && strpos($cell, $separator) === 0) {
++          // Strip off the initial separator
++          $cell = substr($cell, $separator_length);
++          if ($trim_spaces) {
++            // If spaces are being trimmed, use preg_split.
++            $cell = preg_split($separator_pattern, ltrim($cell));
++          }
++          else {
++            // If spaces are not being trimmed, use explode since it's faster.
++            $cell = explode($separator, $cell);
++          }
++          $cell = (count($cell) == 1) ? array_shift($cell) : $cell;
++        }
++      }
++    }
++    return $rows;
++  }
++
++  /**
++   * Define defaults
++   */
++  public function sourceDefaults() {
++    // Get standard CSV defaults.
++    $defaults = parent::sourceDefaults();
++    // Add multivalue defaults.
++    $defaults['multivalue_separator'] = $this->config['multivalue_separator'];
++    $defaults['multivalue_trim_spaces'] = $this->config['multivalue_trim_spaces'];
++    return $defaults;
++  }
++
++  /**
++   * Source form.
++   */
++  public function sourceForm($source_config) {
++    // Get standard CSV form.
++    $form = parent::sourceForm($source_config);
++    // Add multivalue selectors to form.
++    $form['multivalue_separator'] = array(
++      '#type' => 'textfield',
++      '#maxlength' => 5,
++      '#size' => 3,
++      '#title' => t('Multivalue Separator'),
++      '#description' => t('The character(s) that are used to separate multiple values within cells.  Any cell containing multiple values must also start with this set of characters.'),
++      '#default_value' => isset($source_config['multivalue_separator']) ? $source_config['multivalue_separator'] : '||',
++    );
++    $form['multivalue_trim_spaces'] = array(
++      '#type' => 'checkbox',
++      '#title' => t('Trim Spaces'),
++      '#description' => t('Check if spaces should be trimmed around the multivalue separator.'),
++      '#default_value' => isset($source_config['multivalue_trim_spaces']) ? $source_config['multivalue_trim_spaces'] : TRUE,
++    );
++    return $form;
++  }
++
++  /**
++   * Define default configuration.
++   */
++  public function configDefaults() {
++    // Get standard CSV defaults.
++    $defaults = parent::configDefaults();
++    // Add multivalue defaults.
++    $defaults['multivalue_separator'] = '||';
++    $defaults['multivalue_trim_spaces'] = TRUE;
++    return $defaults;
++  }
++
++  /**
++   * Build configuration form.
++   */
++  public function configForm(&$form_state) {
++    // Get standard CSV form.
++    $form = parent::configForm($form_state);
++    // Add multivalue selectors to form.
++    $form['multivalue_separator'] = array(
++      '#type' => 'textfield',
++      '#maxlength' => 5,
++      '#size' => 3,
++      '#title' => t('Multivalue Separator'),
++      '#description' => t('The character(s) that are used to separate multiple values within cells.  Any cell containing multiple values must also start with this set of characters.'),
++      '#default_value' => $this->config['multivalue_separator'],
++    );
++    $form['multivalue_trim_spaces'] = array(
++      '#type' => 'checkbox',
++      '#title' => t('Trim Spaces'),
++      '#description' => t('Check if spaces should be trimmed around the multivalue separator.'),
++      '#default_value' => $this->config['multivalue_trim_spaces'],
++    );
++    return $form;
++  }
++
++  /**
++   * Add validation to configuration form (add to parent's configFormValidate)
++   */
++  public function configFormValidate(&$values) {
++    $this->SeparatorValidate($values);
++    parent::configFormValidate($values);
++  }
++
++  /**
++   * Add validation to source form (add to parent's sourceFormValidate)
++   */
++  public function sourceFormValidate(&$values) {
++    $this->SeparatorValidate($values);
++    parent::sourceFormValidate($values);
++  }
++
++  /**
++   * Validate user input for multivalue_separator
++   */
++  public function SeparatorValidate(&$values) {
++    $delimiter = $values['delimiter'];
++    $delimiter = ($delimiter == 'TAB') ? "\t" : $delimiter;
++    $separator = $values['multivalue_separator'];
++    // Make sure that delimiter and multivalue_separator are different.
++    if (strpos($separator, $delimiter) !== FALSE) {
++      form_set_error('multivalue_separator', t('The multivalue separator cannot contain the same character as the CSV delimiter.'));
++    }
++    // Make sure that " is not part of the multivalue_separator.
++    if (strpos($separator, '"') !== FALSE) {
++      form_set_error('multivalue_separator', t('The multivalue separator cannot contain a quotation mark (&quot;).'));
++    }
++    // Make sure that spaces are not part of the multivalue_separator
++    if (strpos($separator, ' ') !== FALSE) {
++      form_set_error('multivalue_separator', t('The multivalue separator cannot contain spaces.'));
++    }
++    // N.B. opting to not do any extra sanitizing of the user input:
++    // only place where the characters are displayed on a web page are within the
++    // form's text box, which already does necessary cleanup.
++  }
++}

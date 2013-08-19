@@ -1,0 +1,109 @@
+<?php
+/**
+ * @file
+ * Code for the Pharmtrac NDC feature.
+ */
+
+include_once 'pharmtrac_ndc.features.inc';
+
+/**
+ * Variables
+ */
+function pharmtrac_ndc_variable_info() {
+  $variables['pharmtrac_ndc_enabled'] = array(
+    'title' => t('NDC Feature Enabled'),
+    'description' => t('Turn on and off ndc features'),
+    'default' => 0,
+    'type' => 'boolean',
+  );
+  $variables['pharmtrac_ndc_pattern_validation'] = array(
+    'title' => t('NDC Pattern Validation'),
+    'description' => t('Upon adding NDC, pattern validation is applied'),
+    'default' => '',
+    'type' => 'string',
+  );
+  $variables['pharmtrac_ndc_request_types'] = array(
+    'title' => t('NDC Request Types'),
+    'description' => t('NDC supported request types'),
+    'default' => array(),
+    'options' => plusdelta_api_getRequestTypeArray(),
+    'type' => 'options',
+  );
+  
+  return $variables;
+}
+
+/**
+ * Menu iitems
+ */
+function pharmtrac_ndc_menu() {
+  $items = array();
+  
+  $items['settings/ndc'] = array(
+    'title' => 'NDC',
+    'description' => 'Settings for ndc feature',
+    'page callback' => 'drupal_get_form',
+    // 'page arguments' => array('pharmtrac_ndc_settings_form'),
+    'page arguments' => array('variable_module_form', 'pharmtrac_ndc'),
+    'access callback' => 'user_access',
+    'access arguments' => array('administer pharmtrac'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 2
+  );
+  
+  return $items;
+}
+
+/**
+ * Helper function to get ndc request types names
+ */
+function pharmtrac_ndc_requesttypes() {
+  $requests = plusdelta_api_getRequestTypeArray();
+  $options = variable_get_value('pharmtrac_ndc_request_types');
+  $result = array();
+  foreach ($options as $key => $value) {
+    if (!empty($value))
+      $result[] = $requests[$key];
+  }
+  return $result;
+}
+
+/**
+ * Workflow setting form page
+ */
+// function pharmtrac_ndc_settings_form($form, &$form_state) {
+//   $form['pharmtrac_ndc_enabled'] = array(
+//     '#type' => 'radios',
+//     '#options' => array('No','Yes'),
+//     '#default_value' => variable_get_value('pharmtrac_ndc_enabled'),
+//     '#title' => t('Enable ndc feature'),
+//     '#description' => t('Turn on and off ndc features.'),
+//   );
+//   
+//   $requests = plusdelta_api_getRequestTypeArray();
+//   $form['pharmtrac_ndc_request_types'] = array(
+//     '#type' => 'multiselect',
+//     '#default_value' => variable_get_value('pharmtrac_ndc_request_types'),
+//     '#title' => t('NDC Request Types'),
+//     '#description' => t('NDC supported request types.'),
+//     '#options' => $requests,
+//     '#multiple' => true,
+//     '#attributes' => array('size' => 10),
+//   );
+// 
+//   $form['submit'] = array(
+//     '#type' => 'submit',
+//     '#value' => t('Save settings'),
+//   );
+//   
+//   return $form;
+// }
+
+/**
+ * General setting form handle
+ */
+// function pharmtrac_ndc_settings_form_submit($form, &$form_state) {
+//   variable_set_value('pharmtrac_ndc_enabled',$form_state['values']['pharmtrac_ndc_enabled']);
+//   drupal_set_message(t('Settings have been saved.'));
+// }
+

@@ -1,0 +1,75 @@
+/* full-screen admin-menu hack */
+html body.full-screen.admin-menu {
+  margin-top: 0px !important;
+}
+
+/* logo */
+.logo img{
+  height: 32px;
+}
+
+/* menu nolink for sidebar */
+header .nav-header{
+/*  display: none;*/
+}
+
+/* full container */
+.full-container {
+  padding: 0px 2%; 
+}
+body.page-wallboard-dispenses {
+  padding: 0px;
+}
+
+/* sidebar first */
+div.region-sidebar-first h2.block-title {
+  font-size: 17px !important;
+}
+
+/* footer sticky area */
+.footer_bottom {
+  background: none repeat scroll 0 0;
+  border: 0 none;
+  bottom: 0;
+  min-height: 70px;
+  position: fixed;
+  text-align: center;
+  width: 100%;
+  z-index: 9;
+}
+.footer_bottom section.block {
+  margin:0;
+  padding: 1px 19px;
+}
+.footer_bottom section.block h2 {
+  font-size: 12px;
+  margin: 0;
+}
+
+/* tabledrag weight toggle */
+.tabledrag-toggle-weight-wrapper {
+  display: none;
+}
+
+/* form label */
+form label.control-label {
+  font-weight: bold;
+}
+
+/* ajax autocomplete */
+html.js input.form-autocomplete {
+  background-position: 100% 8px;
+  background-repeat: no-repeat;
+}
+html.js input.throbbing {
+  background-position: 100% -13px;
+}
+#autocomplete li.selected {
+  background: none repeat scroll 0 0 #0072B9;
+  color: #FFFFFF;
+}
+
+/* wallboard toolbar */
+body.toolbar.page-wallboard-dispenses {
+  padding-top: 0px !important;
+}

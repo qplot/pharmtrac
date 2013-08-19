@@ -1,0 +1,179 @@
+<?php
+
+/**
+ * @file
+ * Filter specified hits out from your statistics.
+ */
+
+/**
+ * Implements hook_help().
+ * http://drupal.org/node/114774#hook-help
+ */
+function statistics_filter_help($path, $arg) {
+  switch ($path) {
+    case 'admin/modules#description':
+      return t('Filter out admin and search engine hits on your site.');
+    case 'admin/settings/statistics_filter':
+      return t('To ignore crawlers, you must ' .
+        'install and enable the <strong>browscap module</strong>.');
+  }
+}
+
+/**
+ * Implements hook_exit().
+ *
+ * Undo what statistics_exit() did for particular users
+ */
+function statistics_filter_exit() {
+  global $user;
+
+  $do_filtering = FALSE;
+
+  // Who are we ignoring?
+  $filter_admin = variable_get('statistics_filter_noadmin', FALSE);
+  if ($filter_admin && ($user->uid == 1)) {
+    $do_filtering = TRUE;
+  }
+  else {
+    if (is_array($user->roles)) {
+      $filtered_roles = variable_get('statistics_filter_roles', FALSE);
+      if (is_array($filtered_roles)) {
+        $filtered_roles = array_flip($filtered_roles);
+        foreach ($user->roles as $key => $value) {
+          if (isset($filtered_roles[$key])) {
+            $do_filtering = TRUE;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // Ignore crawlers if requested
+  $ignoring_because_crawler = TRUE;
+  if (!$do_filtering && module_exists('browscap')) {
+    $filter_crawlers = variable_get('statistics_filter_crawlers', FALSE);
+    if ($filter_crawlers) {
+      $browser = browscap_get_browser();
+      if ($browser->crawler) {
+        $do_filtering = TRUE;
+        $ignoring_because_crawler = TRUE;
+      }
+    }
+  }
+
+  // We don't want these stats to count, precisely undo what
+  // statistics.module and browscap.module did
+  if ($do_filtering) {
+    if (variable_get('statistics_count_content_views', 0)) {
+      // We are counting content views.
+      if ((arg(0) == 'node') && is_numeric(arg(1)) && arg(2) == '') {
+        // A node has been viewed (and logged by the statistics module),
+        // so decrement what statistics.module incremented
+        db_update( 'node_counter' )
+          ->expression('daycount', 'daycount - :daycount', array(':daycount' => 1))
+          ->expression('totalcount', 'totalcount - :totalcount', array(':totalcount' => 1))
+          ->condition( 'nid', arg(1) )
+          ->execute();
+      }
+    }
+
+    if ((variable_get('statistics_enable_access_log', 0)) && (module_invoke('throttle', 'status') == 0)) {
+      // Statistical logs are enabled.
+      $referrer = $_SERVER['HTTP_REFERER'];
+      $hostname = ip_address();
+
+      // Unlog this page access.
+      db_delete( 'accesslog' )
+        ->condition( 'title',  drupal_get_title() )
+        ->condition( 'path',  $_GET['q'] )
+        ->condition( 'url' , $referrer )
+        ->condition( 'hostname', $hostname )
+        ->condition( 'uid', $user->uid )
+        ->execute();
+    }
+    if (!$ignoring_because_crawler && module_exists('browscap')) {
+      // If we're ignoring based on role, we don't want to count
+      // the browser stats
+      browscap_unmonitor();
+    }
+  }
+}
+
+/**
+ * Implements hook_menu().
+ */
+function statistics_filter_menu() {
+  $items = array();
+
+  $items['admin/config/system/statistics/statistics-filter'] = array(
+    'title' => 'Statistics filter settings',
+    'description' => "Set up which types of site access you don't want to get logged.",
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('statistics_filter_admin_settings'),
+    'access callback' => 'user_access',
+    'access arguments' => array('administer statistics filter'),
+    'type' => MENU_NORMAL_ITEM);
+
+  return $items;
+}
+
+/**
+ * Implements hook_perm().
+ *
+ * @return array
+ */
+function statistics_filter_permission() {
+  return array(
+    'administer statistics filter' => array(
+      'title' => t('Administer Statistics Filter'),
+      'description' => t('Set the roles which should be filtered from site statistics'),
+      ),
+    );
+}
+
+/**
+ * Admin settings callback.
+ */
+function statistics_filter_admin_settings() {
+  $form = array();
+
+  // Restrict administration of this module
+  if (user_access('administer statistics filter') === FALSE) {
+    return drupal_access_denied();
+  }
+
+  $form['statistics_filter_noadmin'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Ignore administrator'),
+    '#default_value' => variable_get('statistics_filter_noadmin', FALSE),
+    '#description' => t("Ignore the special administrator account's accesses to this site.")
+  );
+
+  $roles = user_roles();
+  $variable_roles = variable_get('statistics_filter_roles', array());
+  $default_roles = array();
+  foreach ($roles as $key => $value) {
+    if (in_array($key, $variable_roles)) {
+      $default_roles[] = $key;
+    }
+  }
+  $form['statistics_filter_roles'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Roles to ignore'),
+    '#default_value' => $default_roles,
+    '#options' => $roles,
+    '#description' => t("Ignore accesses by users in any of the checked roles.")
+  );
+
+  if (module_exists('browscap')) {
+    $form['statistics_filter_crawlers'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Ignore crawlers'),
+      '#default_value' => variable_get('statistics_filter_crawlers', FALSE),
+      '#description' => t("Ignore search engine crawlers' accesses to this site.")
+    );
+  }
+
+  return system_settings_form($form);
+}

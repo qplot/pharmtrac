@@ -1,0 +1,13 @@
+name = ABC
+core = 7.x
+package = Features
+dependencies[] = ctools
+dependencies[] = features
+dependencies[] = node_export_features
+dependencies[] = node_export
+dependencies[] = pharmtrac
+dependencies[] = strongarm
+features[ctools][] = strongarm:strongarm:1
+features[features_api][] = api:1
+features[node_export_features][] = 8fc819f6-3155-b1e4-f1e9-4bd7f0d2a63a
+features_exclude[dependencies][node_export_features] = node_export_features

@@ -1,0 +1,8 @@
+.svn
+._*
+.DS_Store
+.DS_Store?
+sites/default/*
+sites/localhost.mockup/*
+sites/localhost.pharmtrac/*
+sites/localhost.wakeforest/*

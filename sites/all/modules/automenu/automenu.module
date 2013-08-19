@@ -1,0 +1,186 @@
+<?php
+/**
+ * Created by dreizwo.de.
+ * User: jakobs
+ * Date: 17.06.2011
+ * Time: 20:28:44
+ * To change this template use File | Settings | File Templates.
+ */
+
+
+/**
+ * Implementation of hook_node_insert().
+ */
+function automenu_node_insert($node) {
+    autocreatemenu($node);
+}
+
+function automenu_node_update($node) {
+    autocreatemenu($node);
+}
+
+/**
+ * Implementation of hook_form_alter().
+ */
+function automenu_form_alter(&$form, $form_state, $form_id) {
+
+    $type = isset($form['#node_type']->type) ? $form['#node_type']->type : '';
+    if(empty($type))
+        $type = isset($form['type']['#default_value'])?$form['type']['#default_value']:'';
+    if(empty($type))
+        return; // should never happen
+    if($form_id == 'node_type_form') {
+           $form['automenu'] = array(
+            '#type' => 'fieldset',
+            '#title' => t('Auto Menu'),
+            '#weight' => 1,
+            '#collapsible' => TRUE,
+            '#collapsed' => TRUE,
+            '#group' => 'additional_settings',
+            '#attached' => array(
+                'js' => array(
+                    'automenu' => drupal_get_path('module', 'automenu') . '/automenu.js',
+                ),
+            ),
+        );
+        $form['automenu'] += __getNodeTypeSettingsForm($type);
+    }
+}
+
+
+function autocreatemenu($node) {
+    /*$hook = 'automenu_create';
+    // here you can add addtional - node implemented as default in this module
+    foreach(module_implements($hook) as $module){
+        $params = module_invoke($module, $hook, $node);
+        automenu_add_menu_link($params);
+    }*/
+	
+	$params = automenu_automenu_create($node);
+	automenu_add_menu_link($params);
+}
+
+
+/**
+ * Save a menu link.
+ */
+function automenu_add_menu_link($params) {
+    if($params['success']) {
+        $new_menu = array(
+            'menu_name' => $params['menu_name'],
+            'link_path' => $params['link_path'],
+            'link_title' => $params['link_title'],
+            'plid' => $params['plid'],
+            'hidden' => $params['hidden'],
+            'expanded' => $params['expanded'],
+            'options' => array('alter' => TRUE),
+        );
+
+
+        if($params['options'] != NULL) {
+            $new_menu['options'] = $params['options'];
+        }
+$params['weight'] =0;
+
+        if($params['weight'] != NULL) {
+            $new_menu['weight'] = $params['weight'];
+        }
+$params['mlid']="";
+        if($params['mlid'] != NULL) {
+            $new_menu['mlid'] = $params['mlid'];
+        }
+
+        if(!menu_link_save($new_menu)) {
+            drupal_set_message(t('There was an error saving the auto-menu link.'), 'error');
+        }
+        else {
+            drupal_set_message(t('The page was automatically added/updated to: !menu.',
+                                 array('!menu' => $params['menu_name'])));
+        }
+    }
+}
+
+
+function automenu_automenu_create($node) {
+    $parent_menu = explode(":", variable_get('automenu_parentmenu_' . $node->language . '_' . $node->type, '0'));
+    if($parent_menu[0]=='0') // 0 == 'none'
+        $parent_menu = explode(":", variable_get('automenu_parentmenu_' . $node->type, '0'));
+    if($parent_menu[0] != '0') {
+        if($node->status == 1) {
+            if($node->language) {
+                $new_menu['options'] = array('langcode' => $node->language);
+            }
+
+            $result = array(
+                'success' => TRUE,
+                'menu_name' => $parent_menu[0],
+                'link_path' => 'node/' . $node->nid,
+                'link_title' => $node->title,
+                'plid' => $parent_menu[1],
+                'hidden' => variable_get('automenu_hide_' . $node->type, 0),
+                'options' => $new_menu['options'],
+                'expanded' =>0,
+            );
+$new_menu['plid']="";
+            $cmlid = db_select('menu_links', 'ml')
+                    ->condition('ml.link_path', 'node/' . $node->nid)
+                    ->condition('ml.plid', $new_menu['plid'])
+                    ->fields('ml', array('mlid'))
+                    ->execute()
+                    ->fetchField(); // the current mlid
+            if($cmlid) {
+                $new_menu['mlid'] = $cmlid;
+            }
+            return $result;
+        }
+    }
+    return null;
+}
+
+
+
+function __getNodeTypeSettingsForm($type) {
+
+    // Get a list of enabled languages.
+    $languages = language_list('enabled');
+    $languages = $languages[1];
+
+    // Shouldn't this be language specific?!
+    $options = array_merge(array("0" => "None"), menu_parent_options(menu_get_menus(), 0));
+    $setting['automenu_parentmenu'] = array(
+        '#type' => 'select',
+        '#title' => t('Default parent menu'),
+        '#default_value' => variable_get('automenu_parentmenu_' . $type, 0),
+        '#options' => $options, // TODO filter on menu items that are language neutral?
+        '#description' => t('Select the default menu for nodes without a language (i.e. language neutral.)'),
+    );
+    // add a selection for "no language" selection... maybe we can find a
+    // better way (I think this is what happens in language neutral situations?)
+
+    foreach($languages as $language){
+        $setting['automenu_parentmenu_' . $language->language] = array(
+            '#type' => 'select',
+            '#title' => t('Parent menu for !lang nodes', array('!lang' => $language->name)),
+            '#default_value' => variable_get(
+                'automenu_parentmenu_' . $language->language . '_' . $type, 0),
+            '#options' => $options, // TODO filter on menu items of current language.
+            '#description' => t('Select the default menu for nodes written in !lang.',
+                                array('!lang' => $language->name)),
+        );
+    }
+
+    $setting['automenu_hide'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Hide automenu entry'),
+        '#default_value' => variable_get('automenu_hide_' . $type, 0),
+        '#description' => t('Set all auto generated menu items of this content type to hidden'),
+    );
+
+    return $setting;
+}
+
+
+
+
+
+

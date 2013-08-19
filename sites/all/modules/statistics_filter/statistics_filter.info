@@ -1,0 +1,14 @@
+name = "Statistics filter"
+description = "Filters unwanted entries out of Statistics modules' stats."
+package = "Statistics"
+version = "7.x-1.0"
+core = 7.x
+dependencies[] = statistics
+files[] = statistics_filter.install
+
+; Information added by drupal.org packaging script on 2012-05-15
+version = "7.x-1.0"
+core = "7.x"
+project = "statistics_filter"
+datestamp = "1337108494"
+

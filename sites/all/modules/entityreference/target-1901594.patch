@@ -1,0 +1,19 @@
+diff --git a/entityreference.module b/entityreference.module
+index 5f03c5b..d20ee74 100644
+--- a/entityreference.module
++++ b/entityreference.module
+@@ -916,9 +916,11 @@ function _entityreference_autocomplete_tags_validate($element, &$form_state, $fo
+         // autocomplete but filled in a value manually.
+         $field = field_info_field($element['#field_name']);
+         $handler = entityreference_get_selection_handler($field);
+-        $value[] = array(
+-          'target_id' => $handler->validateAutocompleteInput($entity, $element, $form_state, $form),
+-        );
++        $ents = $handler->getReferenceableEntities($entity, '=', 1);
++        if (!empty($ents))
++          foreach($ents as $ent) {
++            $value[] = array('target_id' => key($ent));
++          }
+       }
+     }
+   }

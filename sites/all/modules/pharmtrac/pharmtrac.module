@@ -1,0 +1,228 @@
+<?php
+/**
+ * @file
+ * Code for the Pharmtrac feature.
+ */
+
+/**
+ * Pharmtrac content type and views
+ */
+include_once 'pharmtrac.features.inc';
+/**
+ * Pharmtrac settings
+ */
+include_once 'pharmtrac.admin.inc';
+/**
+ * Pharmtrac process
+ */
+include_once 'pharmtrac.process.inc';
+/**
+ * Pharmtrac theme functions
+ */
+include_once 'pharmtrac.theme.inc';
+/**
+ * Pharmtrac debug file
+ */
+include_once 'pharmtrac.debug.inc';
+/**
+ * Pharmtrac drupal file
+ */
+include_once 'pharmtrac.drupal.inc';
+
+/**
+ * Implement hook_help().
+ */
+function pharmtrac_help($path, $arg) {
+  if ($path == 'admin/help#pharmtrac') {
+    return t('Pharmtrac application.');
+  }
+}
+
+/**
+ * Implement hook_menu().
+ */
+function pharmtrac_menu() {
+  $items = array();
+  
+  // debug
+  $items = array_merge($items, pharmtrac_debug_menu());
+  
+  // drupal
+  $items = array_merge($items, pharmtrac_drupal_menu());
+  
+  // admin settings
+  $items = array_merge($items, pharmtrac_admin_menu());
+  
+  // process, hl7 and api
+  $items = array_merge($items, pharmtrac_process_menu());
+  
+  return $items;
+}
+
+/**
+ * Implement hook_permission()
+ */
+function pharmtrac_permission() {
+  return array(
+    'administer pharmtrac' => array(
+      'title' => t('Access pharmtrac backend'),
+      'description' => t('Allow access and manage pharmtrac application')
+    ),
+    'access pharmtrac' => array(
+      'title' => t('Access pharmtrac API'),
+      'description' => t('Allow access pharmtrac API')
+    ),
+    'access pharmtrac report' => array(
+      'title' => t('Access pharmtrac report'),
+      'description' => t('Allow access pharmtrac report pages')
+    ),
+    'access pharmtrac wallboard' => array(
+      'title' => t('Access pharmtrac wallboard'),
+      'description' => t('Allow access pharmtrac wallboard pages')
+    ),
+    'access pharmtrac lookup' => array(
+      'title' => t('Access pharmtrac lookup'),
+      'description' => t('Allow access pharmtrac lookup pages')
+    ),
+  );
+}
+
+/**
+ * Implement hook_block_info()
+ */
+function pharmtrac_block_info() {
+  $blocks['pharmtrac_stats'] = array(
+    'info' => t('Pharmtrac Statistics'),
+  );
+  $blocks['pharmtrac_wallboard_stats'] = array(
+    'info' => t('Pharmtrac Wallboard Statistics')
+  );
+  return $blocks;
+} 
+
+/**
+ * Implement hook_block_view()
+ */
+function pharmtrac_block_view($delta='') {
+  $block =  array();
+  
+  switch ($delta) {
+    case 'pharmtrac_stats':
+      $block['title'] = 'Statistics';
+      $block['content'] = pharmtrac_block_stats_view();
+      break;
+    case 'pharmtrac_wallboard_stats': 
+      // $block['title'] = 'Wallboard Statistics';
+      $block['content'] = pharmtrac_block_wallboard_stats_view();
+      break;
+  }
+  
+  return $block;
+}
+
+/**
+ * Implement hook_cron
+ */
+// function pharmtrac_cron() {
+//   module_load_include('inc', 'pharmtrac', 'pharmtrac.api');
+//   pharmtrac_autoclose_queue_builder();
+//   // plusdelta_api_autoCloseDispenses();
+// }
+// 
+// /**
+//  * Implement hook_cron_queue_info
+//  */
+// function pharmtrac_cron_queue_info() {
+//   $queues['pharmtrac_autoclose_queue'] = array(
+//     'worker callback' => 'pharmtrac_autoclose_queue_worker',
+//     'time' => 5,  // one second
+//   );
+//   return $queues;
+// }
+// 
+// function pharmtrac_autoclose_queue_builder() {
+//   $queue = DrupalQueue::get('pharmtrac_autoclose_queue');
+//   $queue->createQueue();  // There is no harm in trying to recreate existing.
+//   $queue->createItem('autoclose');
+// }
+// 
+// function pharmtrac_autoclose_queue_worker($item) {
+//   // watchdog('Pharmtrac','Autoclose queue ' . $item);
+//   if (plusdelta_api_autoCloseDispenses(1)) {
+//     pharmtrac_autoclose_queue_builder();
+//   }
+// }
+
+/**
+ * Build queue
+ */
+function pharmtrac_build_autoclose_queue() {
+  $queue = DrupalQueue::get($queue);
+  for ($i=1; $i <= $num_items; $i++) {
+    $item = new stdClass();
+    $item->created = time();
+    $item->sequence = $i;
+    $queue->createItem($item);
+  }
+}
+
+/**
+ * Implement hook_services_resources()
+ */
+function pharmtrac_services_resources() {
+  $resources = array();
+  
+  // process api resources
+  module_load_include('inc', 'pharmtrac', 'pharmtrac.resource');
+  $resources = array_merge($resources, pharmtrac_process_resources());
+  
+  return $resources;
+}
+
+/**
+ * Implement hook_services_request_preprocess_alter
+ */
+// function pharmtrac_services_request_preprocess_alter($controller, $args, $options) {
+// }
+ 
+ 
+/**
+ * Implement hook_services_resources_alter()
+ */
+// function pharmtrac_services_resources_alter(&$resources) {
+// }
+
+/**
+ * Implement hook_user_form_alter
+ */
+function pharmtrac_form_user_register_form_alter(&$form, $form_state, $form_id) {
+  $form['#validate'][] = 'pharmtrac_user_register_validate';
+}
+
+/**
+ * Form validate for user register
+ */
+function pharmtrac_user_register_validate($form, &$form_state) {
+  if (isset($form_state['values']['field_user_barcode']['und'][0]['value'])) {
+    if (getEntitiesCount(array('field_user_barcode' => $form_state['values']['field_user_barcode']['und'][0]['value']), 'user'))
+      form_set_error('abc', t('User barcode is not unique'));
+  }
+}
+
+/**
+ * Implement hook_form
+ */
+// function pharmtrac_form_alter(&$form, $form_state, $form_id) {
+//  $form['#submit'][] = 'pharmtrac_form_submit';
+// }
+
+// function pharmtrac_form_submit($form, &$form_state) {
+// }
+
+/**
+ * Implement hook_node_presave
+ */
+// function pharmtrac_node_presave($node) {
+//   if ($node->type == 'wallboard') {
+//   }
+// }

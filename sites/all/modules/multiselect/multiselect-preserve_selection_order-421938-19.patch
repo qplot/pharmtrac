@@ -1,0 +1,27 @@
+diff --git a/multiselect.module b/multiselect.module
+index 8966df0..1fb831c 100644
+--- a/multiselect.module
++++ b/multiselect.module
+@@ -91,6 +91,15 @@ function multiselect_field_widget_form(&$form, &$form_state, $field, $instance,
+   /* END copy from options.module */
+ 
+   $widget = _multiselect_build_widget_code($options, $items, $element, $required);
++  //for each selected item ($items are in delta order still), we unset the item from $options (which is in nid/tid order)
++  //then just re-append it to the bottom of the options array, in order of $items, this fools the FAPI and retains order on edit
++  foreach ($items as $item) {
++    if (isset($options[$item['nid']])) {
++      $val = $options[$item['nid']];
++      unset($options[$item['nid']]);
++      $options[$item['nid']] = $val;
++    }
++  }
+ 
+   // Build the basic select box using Form API.
+   $element += array(
+@@ -311,4 +320,4 @@ function form_type_multiselect_value($element, $edit = FALSE) {
+   if (func_num_args() == 1) {
+     return $element['#default_value'];
+   }
+-}
+\ No newline at end of file
++}

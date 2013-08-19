@@ -1,0 +1,349 @@
+<?php
+/**
+ * @file
+ * Drupal needs this blank file.
+ */
+
+
+/**
+ * Menu items
+ */
+function pharmtrac_wallboard_menu() {
+  $items = array();
+  
+  $items['wallboard/%/display'] = array(
+    'title' => 'General',
+    'description' => 'General application settings',
+    'page callback' => 'pharmtrac_wallboard_display',
+    'page arguments' => array(1),
+    // 'theme callback' => 'page__wallboard_display',
+    // 'theme arguments' => array(),
+    // 'page callback' => 'theme',
+    // 'page arguments' => array('page--wallboard-display'),
+    // 'access callback' => TRUE,
+    'access callback' => 'user_access',
+    'access arguments' => array('administer pharmtrac'),
+    'type' => MENU_CALLBACK,
+  );
+  
+  return $items;
+}
+
+/**
+ * Theme items
+ */
+function pharmtrac_wallboard_theme() {
+  $themes = array(); 
+  
+  $path = drupal_get_path('module', 'pharmtrac_wallboard');
+  
+  $themes['page__wallboard_display'] = array(
+    'arguments' => array('page'),
+    'template' => 'page--wallboard-display',
+    'path' => $path . '/templates'
+  );
+  
+  return $themes;
+}
+
+function pharmtrac_wallboard_preprocess_page(&$vars) {
+  // dsm(arg());
+  // dsm($vars);
+  // view changes arg, so we only capture wallboard_dispenses
+  // instead of wallboard_display
+  if (arg(0) == 'wallboard_dispenses')
+    $vars['theme_hook_suggestions'][] = 'page__wallboard_display';
+}
+
+/**
+ * Implement hook_block_info()
+ */
+function pharmtrac_wallboard_block_info() {
+  $blocks['pharmtrac_wallboard_block_stats'] = array(
+    'info' => t('Pharmtrac Wallboard Statistics')
+  );
+  return $blocks;
+} 
+
+/**
+ * Implement hook_block_view()
+ */
+function pharmtrac_wallboard_block_view($delta='') {
+  $block =  array();
+  
+  switch ($delta) {
+    case 'pharmtrac_wallboard_block_stats':
+      $block['title'] = '';
+      $block['content'] = pharmtrac_wallboard_stats();
+      break;
+  }
+  
+  return $block;
+}
+
+/**
+ * Wallboard display
+ */  
+function pharmtrac_wallboard_display($wid) {
+  $_REQUEST['wid'] = $wid;
+  
+  $view = views_get_view('wallboard_dispenses');
+  $view->set_display('page_1');
+  $view->pre_execute();
+  $view->execute();
+  return $view->render();
+}
+
+/**
+ * Wallboard stats
+ */
+function pharmtrac_wallboard_stats() {
+  // $wid = isset($_REQUEST['wid'])?$_REQUEST['wid']:0;
+  // if (empty($wid)) return 'no wallboard detected.';
+  // 
+  // if ($wallboard = node_load($wid)) {
+    $settings = variable_get('plusdelta_color_settings');
+    $counts = plusdelta_api_getWallboardCounts($settings,42);
+    dsm($counts);
+    
+    // return theme('table', array(
+    //   'header' => getMappedArray('label', $counts), 
+    //   'rows' => array(getMappedArray('count', $counts))
+    // ));
+    
+    
+  // }
+  
+  // $settings = variable_get('plusdelta_color_settings');
+  // $location_id = is_numeric(arg(1))?arg(1):NULL;
+  // $counts = plusdelta_api_getWallboardCounts($settings, $location_id);
+  
+  // return theme('table', array(
+  //   'header' => getMappedArray('label', $counts), 
+  //   'rows' => array(getMappedArray('count', $counts))
+  // ));
+}
+
+/**
+ * Dispense counter
+ */
+function pharmtrac_wallboard_counter($prepare_lid = '', $dropoff_lid = '', $autoclosed = '', $dropoffed = '', $nextrequest = '') {
+  $view = views_get_view('count_dispenses');
+
+  $view->set_display('page_1');
+
+  $view->set_arguments(array(
+    $prepare_lid?$prepare_lid:'all',
+    $dropoff_lid?$dropoff_lid:'all'
+  ));
+
+  $view->pre_execute();
+ 
+  dsm($view->display_handler->handlers['filter']);
+  // $view->display_handler->handlers['filter']['title']->value = $nextrequest;
+  if ($autoclosed)
+    $view->display_handler->handlers['filter']['field_dispense_isclosed_value']->value = $autoclosed;
+  if ($dropoffed)
+    $view->display_handler->handlers['filter']['field_dispense_isdropoff_value']->value = $dropoffed;
+  
+  $view->execute();
+
+  return count($view->result);
+}
+
+function pharmtrac_wallboard_views_pre_view(&$view) {
+  if ($view->name == 'wallboard_dispenses') {
+    // dsm($view);
+    // dsm($view->display['default']);
+    // grab wallboard node id
+    $wid = isset($_REQUEST['wid'])?$_REQUEST['wid']:0;
+    if (empty($wid)) return;
+    if ($wallboard = node_load($wid)) {
+      $prepare_lid = isset($wallboard->field_wallboard_location['und'][0]['target_id'])?$wallboard->field_wallboard_location['und'][0]['target_id']:'all';
+      $dropoff_lid = isset($wallboard->field_wallboard_dropoff['und'][0]['target_id'])?$wallboard->field_wallboard_dropoff['und'][0]['target_id']:'all';
+      
+      // $view = views_get_view('wallboard_dispenses');
+      $view->set_arguments(array(
+        $prepare_lid,
+        $dropoff_lid
+      ));
+    }
+
+    // prepare the header
+    $rate = variable_get('plusdelta_wallboard_refreshrate',30);
+    if (isset($wallboard->field_wallboard_refreshrate['und'][0]['value']))
+      $rate = $wallboard->field_wallboard_refreshrate['und'][0]['value'];
+    // reset interval through URL
+    // $_REQUEST['interval'] = $rate;
+    $output_timer = theme('jstimer', array('widget_name' => 'jst_timer','widget_args' => array('interval' => $rate, 'format_txt' => 'update in %secs%s')));
+    $interval = $rate * 1000;
+    $prepare_title = is_numeric($prepare_lid)?getEntityValue(array('nid'=> $prepare_lid), 'field_location_shortname:'):'';
+    $dropoff_title = is_numeric($dropoff_lid)?getEntityValue(array('nid'=> $dropoff_lid), 'field_location_shortname:'):'';
+    $output_title =  $wallboard->title . ' - ' . $prepare_title . $dropoff_title;
+    // redirect autorefresh URL
+    $_GET['q'] = 'wallboard_dispenses/' . $prepare_lid . '/' . $dropoff_lid;
+    $output_autorefresh =  theme('views_autorefresh', array(
+      'interval' => $interval,
+      'view' => $view
+    ));
+    
+    $header =
+      '<div class="pull-right">' . 
+        $output_timer . $output_autorefresh .
+      '</div>' . 
+      '<h1 class="page-header">' .
+        $output_title . 
+      '</h1>';
+    $view->set_item_option('default', 'header', 'area', 'content', $header);
+    
+    // prepare the footer
+    $footer = '';
+    if ($prepare_lid) {
+      $settings = variable_get('plusdelta_color_settings');
+      $counts = plusdelta_api_getWallboardCounts($settings,$prepare_lid);
+      $footer = '<footer class="footer_bottom">' . '<section class="block clearfix">' .
+        theme('table', array(
+          'header' => getMappedArray('label', $counts), 
+          'rows' => array(getMappedArray('count', $counts))
+        )) . 
+        '</section></footer>';
+    }
+    $view->set_item_option('default', 'footer', 'area', 'content', $footer);
+    
+    // prepare the filter
+    $dueoffset = variable_get('plusdelta_wallboard_duetime_offset',30);
+    if (isset($wallboard->field_wallboard_dueoffset['und'][0]['value']))
+      $dueoffset = $wallboard->field_wallboard_dueoffset['und'][0]['value'];
+    $view->display_handler->options['filters']['field_dispense_duets_value']['default_date'] = 'now +' . $dueoffset . ' minutes';
+  }
+}
+
+function pharmtrac_wallboard_views_plugins_alter(&$plugins) {
+  // dsm($plugins);
+}
+
+function pharmtrac_wallboard_views_post_render(&$view, &$output, &$cache) {
+  // dsm($output);
+}
+
+function pharmtrac_wallboard_views_pre_build(&$view) {
+  if ($view->name == 'wallboard_dispenses') {//kpr($view->field);
+    $map = array(
+      'Order' => 'title_2',
+      'Patient Name' => 'field_patient_lastname',
+      'Patient Barcode' => 'field_user_barcode',
+      'Treatment' => 'field_order_treatment',
+      'Dispense' => 'title',
+      'User Barcode' => 'field_user_barcode',
+      'User Name' => 'field_user_firstname',
+      'Dispense Timestamp' => 'field_dispense_receivets',
+      // 'Due Timestamp' => 'field_dispense_duets', // can't disable
+      'Room' => 'field_dispense_room',
+      'Due Timestamp' => 'field_dispense_duets',
+      'Last State' => 'php',
+    );
+    // dsm($view);
+    
+    // load all available cols
+    $all_cols = _wallboard_all_columns();
+    
+    // load wallboard cols
+    $wid = isset($_REQUEST['wid'])?$_REQUEST['wid']:0;
+    $wallboard = node_load($wid);
+    $cols = _wallboard_columns($wallboard->field_wallboard_columns['und']);
+
+    // disable ones that are not in wallboard cols
+    foreach ($all_cols as $value) {
+      if (!in_array($value, $cols) && in_array($value, array_keys($map))) {
+        $field = $map[$value];
+        unset($view->field[$field]);
+        unset($view->display_handler->handlers['field'][$field]);
+      }
+    }
+  }
+}
+
+function pharmtrac_wallboard_views_pre_render(&$view) {
+  if ($view->name == 'wallboard_dispenses') {
+    // pull the wallboard settings
+    $wid = isset($_REQUEST['wid'])?$_REQUEST['wid']:0;
+    $wallboard = node_load($wid);
+    // dsm($wallboard);
+    
+    foreach ($view->result as &$row) {
+    
+      // figure out current status id
+      $sid = getEntityValue(array(
+        'type' => 'requesttype', 
+        'title' => $row->node_field_data_field_dispense_nextrequesttype_title
+      ));
+    
+      $in_requesttype = FALSE;
+      if (isset($wallboard->field_wallboard_requesttypes['und']))
+        foreach ($wallboard->field_wallboard_requesttypes['und'] as $value) {
+          if ($value['target_id'] == $sid) 
+            $in_requesttype = TRUE;
+        }
+      else
+        // by default request type is granted
+        $in_requesttype = TRUE;
+    
+      $in_processtype = FALSE;
+      if (isset($wallboard->field_wallboard_processtypes['und']))
+        foreach ($wallboard->field_wallboard_processtypes['und'] as $value) {
+          if ($value['target_id'] == $sid) 
+            $in_processtype = TRUE;
+        }
+
+      // display a simple process
+      if ($in_processtype) 
+        $row->node_field_data_field_dispense_nextrequesttype_title = 'in process';
+      // only set value when in the list
+      else if ($in_requesttype) {
+        $status = $row->node_field_data_field_dispense_nextrequesttype_title;
+        // map status to css tag
+        $maps = array(
+          'print' => 'primary',
+          'prepare' => 'info',
+          'verify' => 'success',
+          'pickup' => 'warning',
+          'dropoff' => 'danger',
+          'close' => 'success',
+        );
+
+        if (isset($maps[$status]))
+          $row->node_field_data_field_dispense_nextrequesttype_title = l($status, '', array('attributes' => array('class' => 'btn btn-' . $maps[$status])));
+      } else 
+        $row->node_field_data_field_dispense_nextrequesttype_title = '';
+    }
+    // dsm($view);
+  }
+}
+
+/**
+ * load available columns 
+ */
+function _wallboard_all_columns() {
+  $nodes = node_load_multiple(array(), array('type' => 'wallboard_column'));
+  $cols = array();
+  foreach ($nodes as $value) {
+    $cols[] = $value->title;
+  }
+  return $cols;
+}
+
+/**
+ * load columns and populates with their titles
+ */
+function _wallboard_columns($targets) {
+  $ids = array();
+  foreach ($targets as $value) {
+    $ids[] = intval($value['target_id']);
+  }
+  $nodes = node_load_multiple($ids);
+  $cols = array();
+  foreach ($nodes as $value) {
+    $cols[] = $value->title;
+  }
+  return $cols;
+}

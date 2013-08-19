@@ -1,0 +1,5 @@
+#!/bin/bash
+
+/usr/local/bin/drush -y sql-create pharmtrac
+`/usr/local/bin/drush sql-connect` < pharmtrac.sql
+/usr/local/bin/drush -y en memcache

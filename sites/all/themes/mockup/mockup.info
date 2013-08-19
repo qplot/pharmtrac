@@ -1,0 +1,17 @@
+name = mockup
+description = mockup theme.
+core = 7.x
+base theme = bootstrap
+regions[navigation]     = 'Navigation'
+regions[header]         = 'Top Bar'
+regions[featured]       = 'featured'
+regions[highlighted]    = 'Highlighted'
+regions[help]           = 'Help'
+regions[content]        = 'Content'
+regions[content_full]   = 'content_full'
+regions[sidebar_first]  = 'Primary'
+regions[sidebar_second] = 'Secondary'
+regions[footer]         = 'Footer'
+regions[footer_bottom]  = 'footer_bottom'
+stylesheets[all][] = css/mockup.css
+scripts[] = js/mockup.js

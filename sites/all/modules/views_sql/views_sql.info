@@ -1,0 +1,6 @@
+name = Views SQL
+description = Allows to apply SQL functions to field
+dependencies[] = views
+package = Views
+core = 7.x
+files[] = includes/views_handler_field_sql.inc
