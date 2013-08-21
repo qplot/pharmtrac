@@ -2288,6 +2288,7 @@ function pharmtrac_views_default_views() {
   $handler->display->display_options['access']['perm'] = 'administer pharmtrac';
   $handler->display->display_options['cache']['type'] = 'none';
   $handler->display->display_options['query']['type'] = 'views_query';
+  $handler->display->display_options['query']['options']['pure_distinct'] = TRUE;
   $handler->display->display_options['exposed_form']['type'] = 'basic';
   $handler->display->display_options['pager']['type'] = 'lite';
   $handler->display->display_options['pager']['options']['items_per_page'] = '10';
@@ -2295,17 +2296,39 @@ function pharmtrac_views_default_views() {
   $handler->display->display_options['pager']['options']['id'] = '0';
   $handler->display->display_options['pager']['options']['quantity'] = '9';
   $handler->display->display_options['style_plugin'] = 'table';
+  $handler->display->display_options['style_options']['grouping'] = array(
+    0 => array(
+      'field' => 'nid',
+      'rendered' => 1,
+      'rendered_strip' => 0,
+    ),
+  );
   $handler->display->display_options['style_options']['columns'] = array(
+    'views_bulk_operations' => 'views_bulk_operations',
+    'nid' => 'nid',
     'title' => 'title',
-    'field_location_barcode' => 'field_location_barcode',
-    'field_short_name' => 'field_short_name',
+    'field_location_shortname' => 'field_location_shortname',
+    'field_location_longname' => 'field_location_longname',
+    'field_location_properties' => 'field_location_properties',
+    'field_location_rooms' => 'field_location_rooms',
     'edit_node' => 'edit_node',
     'view_node' => 'view_node',
-    'body_1' => 'body_1',
     'nothing' => 'nothing',
   );
   $handler->display->display_options['style_options']['default'] = '-1';
   $handler->display->display_options['style_options']['info'] = array(
+    'views_bulk_operations' => array(
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+    ),
+    'nid' => array(
+      'sortable' => 0,
+      'default_sort_order' => 'asc',
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+    ),
     'title' => array(
       'sortable' => 1,
       'default_sort_order' => 'asc',
@@ -2313,16 +2336,26 @@ function pharmtrac_views_default_views() {
       'separator' => '',
       'empty_column' => 0,
     ),
-    'field_location_barcode' => array(
-      'sortable' => 1,
+    'field_location_shortname' => array(
+      'sortable' => 0,
       'default_sort_order' => 'asc',
       'align' => '',
       'separator' => '',
       'empty_column' => 0,
     ),
-    'field_short_name' => array(
-      'sortable' => 1,
+    'field_location_longname' => array(
+      'sortable' => 0,
       'default_sort_order' => 'asc',
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+    ),
+    'field_location_properties' => array(
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+    ),
+    'field_location_rooms' => array(
       'align' => '',
       'separator' => '',
       'empty_column' => 0,
@@ -2333,13 +2366,6 @@ function pharmtrac_views_default_views() {
       'empty_column' => 0,
     ),
     'view_node' => array(
-      'align' => '',
-      'separator' => '',
-      'empty_column' => 0,
-    ),
-    'body_1' => array(
-      'sortable' => 1,
-      'default_sort_order' => 'asc',
       'align' => '',
       'separator' => '',
       'empty_column' => 0,
@@ -2366,7 +2392,7 @@ function pharmtrac_views_default_views() {
   $handler->display->display_options['fields']['views_bulk_operations']['table'] = 'node';
   $handler->display->display_options['fields']['views_bulk_operations']['field'] = 'views_bulk_operations';
   $handler->display->display_options['fields']['views_bulk_operations']['vbo_settings']['display_type'] = '1';
-  $handler->display->display_options['fields']['views_bulk_operations']['vbo_settings']['enable_select_all_pages'] = 1;
+  $handler->display->display_options['fields']['views_bulk_operations']['vbo_settings']['enable_select_all_pages'] = 0;
   $handler->display->display_options['fields']['views_bulk_operations']['vbo_settings']['force_single'] = 0;
   $handler->display->display_options['fields']['views_bulk_operations']['vbo_settings']['entity_load_capacity'] = '10';
   $handler->display->display_options['fields']['views_bulk_operations']['vbo_operations'] = array(
@@ -2383,13 +2409,6 @@ function pharmtrac_views_default_views() {
       'skip_confirmation' => 0,
       'override_label' => 1,
       'label' => 'Delete locations',
-    ),
-    'action::system_message_action' => array(
-      'selected' => 0,
-      'postpone_processing' => 0,
-      'skip_confirmation' => 0,
-      'override_label' => 0,
-      'label' => '',
     ),
     'action::views_bulk_operations_script_action' => array(
       'selected' => 0,
@@ -2425,6 +2444,13 @@ function pharmtrac_views_default_views() {
         ),
       ),
     ),
+    'action::node_export_drupal_action' => array(
+      'selected' => 0,
+      'postpone_processing' => 0,
+      'skip_confirmation' => 0,
+      'override_label' => 0,
+      'label' => '',
+    ),
     'action::views_bulk_operations_argument_selector_action' => array(
       'selected' => 0,
       'skip_confirmation' => 0,
@@ -2442,13 +2468,6 @@ function pharmtrac_views_default_views() {
       'label' => '',
     ),
     'action::node_publish_action' => array(
-      'selected' => 0,
-      'postpone_processing' => 0,
-      'skip_confirmation' => 0,
-      'override_label' => 0,
-      'label' => '',
-    ),
-    'action::system_goto_action' => array(
       'selected' => 0,
       'postpone_processing' => 0,
       'skip_confirmation' => 0,
