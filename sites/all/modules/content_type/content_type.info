@@ -1,0 +1,5 @@
+name = Content Type
+description = Add the missing content type integration with views, so that we can have a list of content type out of admin pages
+dependencies[] = views
+core = 7.x
+ 

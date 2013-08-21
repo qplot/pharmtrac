@@ -1,0 +1,65 @@
+<?php
+/**
+ * @file content_type.module
+ * TODO: Enter file description here.
+ */
+
+/**
+ * Implements hook_help().
+ */
+function content_type_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#content_type':
+      return t("Add the missing content type integration with views, so that we can have a list of content type out of admin pages");
+    // OPTIONAL: Add additional cases for other paths that should display help text.
+  }
+}
+
+/**
+ * Implements hook_menu().
+ */
+function content_type_menu() { 
+  $items = array();
+  
+  // // This is the minimum information you can provide for a menu item.
+  // $items['content_type'] = array(
+  //   'title' => 'TODO: Enter menu item title',
+  //   'page callback' => 'TODO: Enter callback function',
+  //   'access arguments' => array('TODO: Enter user permissions'),
+  // );
+  // // This is a menu item for a form.
+  // $items['content_type/admin'] = array(
+  //   'title' => 'TODO: Enter menu item title',
+  //   'page callback' => 'drupal_get_form',
+  //   'page arguments' => array('content_type_form'),
+  //   'access arguments' => array('TODO: Enter user permissions'),
+  // );
+  // // More complex menu item.
+  // $items['content_type/foo'] = array(
+  //   'title' => 'TODO: Enter menu item title',
+  //   'description' => 'TODO: Enter description',
+  //   'page callback' => 'TODO: Enter callback function',
+  //   'page arguments' => array(), // An array of arguments to pass to the page callback function. Integer values pass the corresponding URL component.
+  //   'access callback' => '', // defaults to user_access()
+  //   'access arguments' => array('TODO: Enter user permissions'),
+  //   'weight' => 0,
+  //   'type' => MENU_NORMAL_ITEM, // One of MENU_NORMAL_ITEM / MENU_CALLBACK / MENU_SUGGESTED_ITEM / MENU_LOCAL_TASK / MENU_DEFAULT_LOCAL_TASK
+  //   'file' => 'content_type.admin.inc',
+  //   'menu_name' => '', // Menu to place this item in.
+  //   'title callback' => '', // Function to generate the title, defaults to t(). 
+  //   'title arguments' => array(), // Arguments to send to t() or your custom callback. 
+  // );
+  // // OPTIONAL: Fill in additional menu items
+
+  return $items;
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function content_type_views_api() {
+  return array(
+    'api' => '3.0',
+    'path' => drupal_get_path('module', 'content_type'),
+  );
+}
