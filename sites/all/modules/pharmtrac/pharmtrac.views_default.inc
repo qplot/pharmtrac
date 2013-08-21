@@ -1676,6 +1676,13 @@ function pharmtrac_views_default_views() {
   $handler->display->display_options['relationships']['field_dispense_preparelocation_target_id']['table'] = 'field_data_field_dispense_preparelocation';
   $handler->display->display_options['relationships']['field_dispense_preparelocation_target_id']['field'] = 'field_dispense_preparelocation_target_id';
   $handler->display->display_options['relationships']['field_dispense_preparelocation_target_id']['ui_name'] = 'Prepare Location';
+  $handler->display->display_options['relationships']['field_dispense_preparelocation_target_id']['label'] = 'Prepare Location';
+  /* Relationship: Dropoff Location */
+  $handler->display->display_options['relationships']['field_dispense_dropofflocation_target_id']['id'] = 'field_dispense_dropofflocation_target_id';
+  $handler->display->display_options['relationships']['field_dispense_dropofflocation_target_id']['table'] = 'field_data_field_dispense_dropofflocation';
+  $handler->display->display_options['relationships']['field_dispense_dropofflocation_target_id']['field'] = 'field_dispense_dropofflocation_target_id';
+  $handler->display->display_options['relationships']['field_dispense_dropofflocation_target_id']['ui_name'] = 'Dropoff Location';
+  $handler->display->display_options['relationships']['field_dispense_dropofflocation_target_id']['label'] = 'Dropoff Location';
   /* Field: Content: Nid */
   $handler->display->display_options['fields']['nid']['id'] = 'nid';
   $handler->display->display_options['fields']['nid']['table'] = 'node';
@@ -1712,7 +1719,13 @@ function pharmtrac_views_default_views() {
   $handler->display->display_options['fields']['field_location_shortname']['table'] = 'field_data_field_location_shortname';
   $handler->display->display_options['fields']['field_location_shortname']['field'] = 'field_location_shortname';
   $handler->display->display_options['fields']['field_location_shortname']['relationship'] = 'field_dispense_preparelocation_target_id';
-  $handler->display->display_options['fields']['field_location_shortname']['label'] = 'Location';
+  $handler->display->display_options['fields']['field_location_shortname']['label'] = 'Prepare';
+  /* Field: Content: Short name */
+  $handler->display->display_options['fields']['field_location_shortname_1']['id'] = 'field_location_shortname_1';
+  $handler->display->display_options['fields']['field_location_shortname_1']['table'] = 'field_data_field_location_shortname';
+  $handler->display->display_options['fields']['field_location_shortname_1']['field'] = 'field_location_shortname';
+  $handler->display->display_options['fields']['field_location_shortname_1']['relationship'] = 'field_dispense_dropofflocation_target_id';
+  $handler->display->display_options['fields']['field_location_shortname_1']['label'] = 'Dropoff';
   /* Field: Content: Post date */
   $handler->display->display_options['fields']['created']['id'] = 'created';
   $handler->display->display_options['fields']['created']['table'] = 'node';
@@ -1745,7 +1758,7 @@ function pharmtrac_views_default_views() {
   $handler->display->display_options['fields']['field_user_lastname']['table'] = 'field_data_field_user_lastname';
   $handler->display->display_options['fields']['field_user_lastname']['field'] = 'field_user_lastname';
   $handler->display->display_options['fields']['field_user_lastname']['relationship'] = 'uid';
-  $handler->display->display_options['fields']['field_user_lastname']['label'] = 'Last location user';
+  $handler->display->display_options['fields']['field_user_lastname']['label'] = 'User';
   /* Field: Content: Request Type */
   $handler->display->display_options['fields']['field_request_requesttype']['id'] = 'field_request_requesttype';
   $handler->display->display_options['fields']['field_request_requesttype']['table'] = 'field_data_field_request_requesttype';
@@ -7794,13 +7807,27 @@ if ($row->field_dispense_isclosed == \'1\')
   $handler->display->display_options['fields']['title_2']['field'] = 'title';
   $handler->display->display_options['fields']['title_2']['relationship'] = 'field_request_location_target_id';
   $handler->display->display_options['fields']['title_2']['label'] = 'Location';
+  $handler->display->display_options['fields']['title_2']['exclude'] = TRUE;
   $handler->display->display_options['fields']['title_2']['link_to_node'] = FALSE;
+  /* Field: Content: Short name */
+  $handler->display->display_options['fields']['field_location_shortname']['id'] = 'field_location_shortname';
+  $handler->display->display_options['fields']['field_location_shortname']['table'] = 'field_data_field_location_shortname';
+  $handler->display->display_options['fields']['field_location_shortname']['field'] = 'field_location_shortname';
+  $handler->display->display_options['fields']['field_location_shortname']['relationship'] = 'field_request_location_target_id';
+  $handler->display->display_options['fields']['field_location_shortname']['label'] = 'Location';
   /* Field: User: Barcode */
   $handler->display->display_options['fields']['field_user_barcode']['id'] = 'field_user_barcode';
   $handler->display->display_options['fields']['field_user_barcode']['table'] = 'field_data_field_user_barcode';
   $handler->display->display_options['fields']['field_user_barcode']['field'] = 'field_user_barcode';
   $handler->display->display_options['fields']['field_user_barcode']['relationship'] = 'uid';
   $handler->display->display_options['fields']['field_user_barcode']['label'] = 'User';
+  $handler->display->display_options['fields']['field_user_barcode']['exclude'] = TRUE;
+  /* Field: User: Last Name */
+  $handler->display->display_options['fields']['field_user_lastname']['id'] = 'field_user_lastname';
+  $handler->display->display_options['fields']['field_user_lastname']['table'] = 'field_data_field_user_lastname';
+  $handler->display->display_options['fields']['field_user_lastname']['field'] = 'field_user_lastname';
+  $handler->display->display_options['fields']['field_user_lastname']['relationship'] = 'uid';
+  $handler->display->display_options['fields']['field_user_lastname']['label'] = 'User';
   /* Field: Note */
   $handler->display->display_options['fields']['nothing_1']['id'] = 'nothing_1';
   $handler->display->display_options['fields']['nothing_1']['table'] = 'views';
