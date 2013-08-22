@@ -1046,10 +1046,13 @@ function pharmtrac_views_default_views() {
     'title' => 'title',
     'title_3' => 'title_3',
     'field_dispense_duets' => 'field_dispense_duets',
+    'changed' => 'changed',
     'title_4' => 'title_4',
     'title_2' => 'title_2',
+    'field_location_shortname' => 'field_location_shortname',
     'title_1' => 'title_1',
     'title_5' => 'title_5',
+    'field_user_lastname' => 'field_user_lastname',
     'edit_node' => 'edit_node',
     'view_node' => 'view_node',
     'nothing' => 'nothing',
@@ -1082,6 +1085,13 @@ function pharmtrac_views_default_views() {
       'separator' => '',
       'empty_column' => 0,
     ),
+    'changed' => array(
+      'sortable' => 1,
+      'default_sort_order' => 'asc',
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+    ),
     'title_4' => array(
       'sortable' => 1,
       'default_sort_order' => 'asc',
@@ -1096,6 +1106,13 @@ function pharmtrac_views_default_views() {
       'separator' => '',
       'empty_column' => 0,
     ),
+    'field_location_shortname' => array(
+      'sortable' => 1,
+      'default_sort_order' => 'asc',
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+    ),
     'title_1' => array(
       'sortable' => 1,
       'default_sort_order' => 'asc',
@@ -1104,6 +1121,13 @@ function pharmtrac_views_default_views() {
       'empty_column' => 0,
     ),
     'title_5' => array(
+      'sortable' => 1,
+      'default_sort_order' => 'asc',
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+    ),
+    'field_user_lastname' => array(
       'sortable' => 1,
       'default_sort_order' => 'asc',
       'align' => '',
@@ -1192,6 +1216,13 @@ function pharmtrac_views_default_views() {
   $handler->display->display_options['relationships']['field_dispense_room_target_id']['field'] = 'field_dispense_room_target_id';
   $handler->display->display_options['relationships']['field_dispense_room_target_id']['ui_name'] = 'Room';
   $handler->display->display_options['relationships']['field_dispense_room_target_id']['label'] = 'Room';
+  /* Relationship: Last Request User */
+  $handler->display->display_options['relationships']['uid']['id'] = 'uid';
+  $handler->display->display_options['relationships']['uid']['table'] = 'node';
+  $handler->display->display_options['relationships']['uid']['field'] = 'uid';
+  $handler->display->display_options['relationships']['uid']['relationship'] = 'field_dispense_lastrequest_target_id';
+  $handler->display->display_options['relationships']['uid']['ui_name'] = 'Last Request User';
+  $handler->display->display_options['relationships']['uid']['label'] = 'Last Request User';
   /* Field: Bulk operations: Content */
   $handler->display->display_options['fields']['views_bulk_operations']['id'] = 'views_bulk_operations';
   $handler->display->display_options['fields']['views_bulk_operations']['table'] = 'node';
@@ -1340,6 +1371,7 @@ function pharmtrac_views_default_views() {
   $handler->display->display_options['fields']['field_dispense_duets']['table'] = 'field_data_field_dispense_duets';
   $handler->display->display_options['fields']['field_dispense_duets']['field'] = 'field_dispense_duets';
   $handler->display->display_options['fields']['field_dispense_duets']['label'] = 'Due Date';
+  $handler->display->display_options['fields']['field_dispense_duets']['exclude'] = TRUE;
   $handler->display->display_options['fields']['field_dispense_duets']['settings'] = array(
     'format_type' => 'short',
     'fromto' => 'both',
@@ -1347,10 +1379,18 @@ function pharmtrac_views_default_views() {
     'multiple_from' => '',
     'multiple_to' => '',
   );
+  /* Field: Content: Updated date */
+  $handler->display->display_options['fields']['changed']['id'] = 'changed';
+  $handler->display->display_options['fields']['changed']['table'] = 'node';
+  $handler->display->display_options['fields']['changed']['field'] = 'changed';
+  $handler->display->display_options['fields']['changed']['label'] = 'Updated';
+  $handler->display->display_options['fields']['changed']['date_format'] = 'short';
+  $handler->display->display_options['fields']['changed']['format_date_sql'] = 0;
   /* Field: Content: Title */
   $handler->display->display_options['fields']['title_4']['id'] = 'title_4';
   $handler->display->display_options['fields']['title_4']['table'] = 'node';
   $handler->display->display_options['fields']['title_4']['field'] = 'title';
+  $handler->display->display_options['fields']['title_4']['relationship'] = 'field_dispense_room_target_id';
   $handler->display->display_options['fields']['title_4']['label'] = 'Room';
   $handler->display->display_options['fields']['title_4']['link_to_node'] = FALSE;
   /* Field: Content: Title */
@@ -1359,6 +1399,13 @@ function pharmtrac_views_default_views() {
   $handler->display->display_options['fields']['title_2']['field'] = 'title';
   $handler->display->display_options['fields']['title_2']['relationship'] = 'field_dispense_preparelocation_target_id';
   $handler->display->display_options['fields']['title_2']['label'] = 'Prep';
+  $handler->display->display_options['fields']['title_2']['exclude'] = TRUE;
+  /* Field: Content: Short name */
+  $handler->display->display_options['fields']['field_location_shortname']['id'] = 'field_location_shortname';
+  $handler->display->display_options['fields']['field_location_shortname']['table'] = 'field_data_field_location_shortname';
+  $handler->display->display_options['fields']['field_location_shortname']['field'] = 'field_location_shortname';
+  $handler->display->display_options['fields']['field_location_shortname']['relationship'] = 'field_dispense_preparelocation_target_id';
+  $handler->display->display_options['fields']['field_location_shortname']['label'] = 'Prep';
   /* Field: Content: Title */
   $handler->display->display_options['fields']['title_1']['id'] = 'title_1';
   $handler->display->display_options['fields']['title_1']['table'] = 'node';
@@ -1372,7 +1419,14 @@ function pharmtrac_views_default_views() {
   $handler->display->display_options['fields']['title_5']['field'] = 'title';
   $handler->display->display_options['fields']['title_5']['relationship'] = 'field_dispense_prioritylevel_target_id';
   $handler->display->display_options['fields']['title_5']['label'] = 'Priority';
+  $handler->display->display_options['fields']['title_5']['exclude'] = TRUE;
   $handler->display->display_options['fields']['title_5']['link_to_node'] = FALSE;
+  /* Field: User: Last Name */
+  $handler->display->display_options['fields']['field_user_lastname']['id'] = 'field_user_lastname';
+  $handler->display->display_options['fields']['field_user_lastname']['table'] = 'field_data_field_user_lastname';
+  $handler->display->display_options['fields']['field_user_lastname']['field'] = 'field_user_lastname';
+  $handler->display->display_options['fields']['field_user_lastname']['relationship'] = 'uid';
+  $handler->display->display_options['fields']['field_user_lastname']['label'] = 'User';
   /* Field: Content: Edit link */
   $handler->display->display_options['fields']['edit_node']['id'] = 'edit_node';
   $handler->display->display_options['fields']['edit_node']['table'] = 'views_entity_node';
@@ -4135,6 +4189,7 @@ function pharmtrac_views_default_views() {
   $handler->display->display_options['relationships']['field_order_meds_target_id']['table'] = 'field_data_field_order_meds';
   $handler->display->display_options['relationships']['field_order_meds_target_id']['field'] = 'field_order_meds_target_id';
   $handler->display->display_options['relationships']['field_order_meds_target_id']['ui_name'] = 'Meds';
+  $handler->display->display_options['relationships']['field_order_meds_target_id']['label'] = 'Meds';
   /* Field: Bulk operations: Content */
   $handler->display->display_options['fields']['views_bulk_operations']['id'] = 'views_bulk_operations';
   $handler->display->display_options['fields']['views_bulk_operations']['table'] = 'node';
@@ -4323,6 +4378,7 @@ function pharmtrac_views_default_views() {
   $handler->display->display_options['fields']['title_1']['id'] = 'title_1';
   $handler->display->display_options['fields']['title_1']['table'] = 'node';
   $handler->display->display_options['fields']['title_1']['field'] = 'title';
+  $handler->display->display_options['fields']['title_1']['relationship'] = 'field_order_meds_target_id';
   $handler->display->display_options['fields']['title_1']['label'] = 'Med';
   /* Field: Content: Priority */
   $handler->display->display_options['fields']['field_order_priority']['id'] = 'field_order_priority';
