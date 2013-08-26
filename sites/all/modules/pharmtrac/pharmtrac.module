@@ -226,3 +226,14 @@ function pharmtrac_user_register_validate($form, &$form_state) {
 //   if ($node->type == 'wallboard') {
 //   }
 // }
+
+/**
+ * Implement hook_node_view
+ */
+function pharmtrac_node_view($node, $view_mode, $langcode) {
+  if ($node->type == 'patient') {
+    $title = getSet($node->field_patient_lastname['und'][0]['value']) . ', ' . getSet($node->field_patient_firstname['und'][0]['value']); 
+    drupal_set_title($title);
+  }
+  // dsm($node->content);
+}
