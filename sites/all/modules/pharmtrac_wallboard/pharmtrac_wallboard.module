@@ -238,6 +238,7 @@ function pharmtrac_wallboard_views_pre_build(&$view) {
       'User Name' => 'field_user_firstname',
       'Dispense Timestamp' => 'field_dispense_receivets',
       // 'Due Timestamp' => 'field_dispense_duets', // can't disable
+      'Priority' => 'field_dispense_prioritylevel',
       'Room' => 'field_dispense_room',
       'Due Timestamp' => 'field_dispense_duets',
       'Last State' => 'php',

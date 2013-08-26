@@ -10365,10 +10365,12 @@ print \'Pluggable by code\';
   $handler->display->display_options['footer']['area']['empty'] = TRUE;
   $handler->display->display_options['footer']['area']['content'] = 'Plugin footer counter text';
   $handler->display->display_options['footer']['area']['format'] = 'full_html';
-  /* Relationship: Content: Order (field_dispense_order) */
+  /* Relationship: Order */
   $handler->display->display_options['relationships']['field_dispense_order_nid']['id'] = 'field_dispense_order_nid';
   $handler->display->display_options['relationships']['field_dispense_order_nid']['table'] = 'field_data_field_dispense_order';
   $handler->display->display_options['relationships']['field_dispense_order_nid']['field'] = 'field_dispense_order_nid';
+  $handler->display->display_options['relationships']['field_dispense_order_nid']['ui_name'] = 'Order';
+  $handler->display->display_options['relationships']['field_dispense_order_nid']['label'] = 'Order';
   $handler->display->display_options['relationships']['field_dispense_order_nid']['delta'] = '0';
   /* Relationship: Patient */
   $handler->display->display_options['relationships']['field_order_patient_target_id']['id'] = 'field_order_patient_target_id';
@@ -10488,6 +10490,14 @@ print \'Pluggable by code\';
   $handler->display->display_options['fields']['title_1']['relationship'] = 'field_dispense_nextrequesttype_target_id';
   $handler->display->display_options['fields']['title_1']['exclude'] = TRUE;
   $handler->display->display_options['fields']['title_1']['link_to_node'] = FALSE;
+  /* Field: Content: Priority Level */
+  $handler->display->display_options['fields']['field_dispense_prioritylevel']['id'] = 'field_dispense_prioritylevel';
+  $handler->display->display_options['fields']['field_dispense_prioritylevel']['table'] = 'field_data_field_dispense_prioritylevel';
+  $handler->display->display_options['fields']['field_dispense_prioritylevel']['field'] = 'field_dispense_prioritylevel';
+  $handler->display->display_options['fields']['field_dispense_prioritylevel']['label'] = 'Priority';
+  $handler->display->display_options['fields']['field_dispense_prioritylevel']['settings'] = array(
+    'link' => 0,
+  );
   /* Field: Global: Custom text */
   $handler->display->display_options['fields']['nothing']['id'] = 'nothing';
   $handler->display->display_options['fields']['nothing']['table'] = 'views';

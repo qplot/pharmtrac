@@ -2129,6 +2129,14 @@ function plusdelta_api_getWallboardCounts($settings, $location_id = NULL) {
       'color' => 'blue',
     ),
     'dropoff'     => array( 
+      'label' => 'Dropoff Queue',
+      'count' => plusdelta_api_getDispenseCount($location_id,
+        array_search('dropoff',$reqs),
+        $from, NULL, False
+      ),
+      'color' => 'blue',
+    ),
+    'dropoffed'     => array( 
       'label' => 'Delivered',
       'count' => plusdelta_api_getDispenseCount($location_id,
         NULL,
