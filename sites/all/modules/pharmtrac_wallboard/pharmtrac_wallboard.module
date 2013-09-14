@@ -201,6 +201,7 @@ function pharmtrac_wallboard_views_pre_view(&$view) {
     if ($prepare_lid) {
       $settings = variable_get('plusdelta_color_settings');
       $counts = plusdelta_api_getWallboardCounts($settings,$prepare_lid);
+      $counts['ontime']['count'] = $counts['ontime']['count']*100 . '%';
       $footer = '<footer class="footer_bottom">' . '<section class="block clearfix">' .
         theme('table', array(
           'header' => getMappedArray('label', $counts), 
